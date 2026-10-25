@@ -35,6 +35,7 @@ if os.path.exists(STATS_FILE):
         pass
 
 state = {
+    "ver": "v2.1-approval",
     "status": "idle", "tool": None, "pose": "idle",
     "tokens": {"prompt": 0, "output": 0, "cache_hit": 0, "context": 0},
     "last_turn": None, "finished_at": 0,
@@ -87,25 +88,108 @@ def extract(msgs):
     return tool, usage, err
 
 
+ACT_FILE = os.path.join(HERE, "activity.json")
+activity = {}
+try:
+    if os.path.exists(ACT_FILE):
+        activity.update(json.load(open(ACT_FILE, encoding="utf-8")))
+except Exception:
+    pass
+
+
+def save_activity():
+    try:
+        json.dump(activity, open(ACT_FILE, "w", encoding="utf-8"), ensure_ascii=False)
+    except Exception:
+        pass
+
+
+RUN_KEYS = ("running", "working", "busy")
+WAIT_KEYS = ("waiting", "waiting_approval", "approval", "pending", "needs_approval")
+CELEBRATE_SEC = 8.0
+
+
 def poller():
-    last_status = "idle"
-    turn_start = None
-    last_usage = None
     last_tick = time.time()
+    last_save = time.time()
+    celebrate_until = 0.0
     while True:
         try:
             chats = get_json("/api/chats")
             sr = lambda c: str(c.get("status", "")).lower()
-            waiting = [c for c in chats if sr(c) in ("waiting", "waiting_approval", "approval", "pending", "needs_approval")]
-            running = [c for c in chats if sr(c) in ("running", "working", "busy")]
-            if running:
-                c = sorted(running, key=lambda x: x.get("updated_at") or "", reverse=True)[0]
-                detail = get_json("/api/chats/%s" % c["id"])
-                msgs = tail_turn(detail.get("messages", []))
+
+            pend = 0
+            try:
+                ap = get_json("/api/approval/list", timeout=3)
+                if isinstance(ap, dict):
+                    pend = int(ap.get("count") or len(ap.get("pending_approvals") or []))
+            except Exception:
+                pend = 0
+
+            now = time.time()
+            fresh_act = {}
+            celebrate = False
+            waiting_any = False
+            for c in chats:
+                if c.get("archived"):
+                    continue
+                cid = c["id"]
+                st = "running" if sr(c) in RUN_KEYS else ("waiting" if sr(c) in WAIT_KEYS else "idle")
+                waiting_any = waiting_any or st == "waiting"
+                rec = activity.get(cid) or {}
+                prev = rec.get("status")
+                started = rec.get("started") or 0
+                if st == "running" and prev != "running":
+                    started = now
+                if prev == "running" and st != "running":
+                    celebrate = True
+                fresh_act[cid] = {"status": st, "started": started}
+            activity.clear()
+            activity.update(fresh_act)
+
+            with lock:
+                state["approval_pending"] = pend
+                state["permission"] = waiting_any or pend > 0
+
+            running = [c for c in chats if not c.get("archived") and activity.get(c["id"], {}).get("status") == "running"]
+
+            if celebrate:
+                with lock:
+                    state["status"] = "idle"
+                    state["pose"] = "success"
+                    state["finished_at"] = now
+                    state["tool"] = None
+                    state["chat"] = None
+                    dur = max(0.5, now - (state.get("turn_started") or now))
+                    out_tok = state["tokens"].get("output") or 0
+                    state["turn"] = {
+                        "seconds": round(dur, 1),
+                        "output": out_tok,
+                        "tps": round(out_tok / dur, 1) if out_tok else 0,
+                        "cache_hit": state["tokens"].get("cache_hit", 0),
+                    }
+                    state["last_turn"] = state["turn"]
+                    stats["tasks"] += 1
+                    stats["mood"] = min(100, stats["mood"] + 4)
+                    stats["battery"] = max(0, stats["battery"] - 3)
+                    save_stats()
+                    state["stats"] = stats
+                celebrate_until = now + CELEBRATE_SEC
+
+            elif running and now >= celebrate_until:
+                disp = max(running, key=lambda c: activity.get(c["id"], {}).get("started") or 0)
+                try:
+                    detail = get_json("/api/chats/%s" % disp["id"], timeout=8)
+                except Exception:
+                    detail = {}
+                msgs = tail_turn(detail.get("messages") or [])
                 tool, usage, err = extract(msgs)
                 pose = TOOL_POSE.get(tool, "tool")
                 with lock:
+                    if state["status"] != "working":
+                        state["turn_started"] = now
                     state["status"] = "working"
+                    state["chat"] = disp["id"][:8]
                     state["tool"] = tool
                     state["pose"] = pose if tool else "thinking"
                     state["error"] = bool(err)
@@ -117,37 +201,17 @@ def poller():
                             "context": usage.get("context_size") or 0,
                         }
                         state["last_turn"] = state["tokens"]
-                        last_usage = (state["tokens"]["prompt"], state["tokens"]["output"])
-                if last_status != "working":
-                    last_status = "working"
-                    turn_start = time.time()
-                with lock:
-                    state["permission"] = bool(waiting)
             else:
                 with lock:
-                    state["permission"] = bool(waiting)
-                    if last_status == "working":
+                    if now >= celebrate_until:
                         state["status"] = "idle"
-                        state["pose"] = "success"
-                        state["finished_at"] = time.time()
-                        state["tool"] = None
-                        dur = max(0.5, time.time() - (turn_start or time.time()))
-                        out_tok = state["tokens"].get("output") or 0
-                        state["turn"] = {
-                            "seconds": round(dur, 1),
-                            "output": out_tok,
-                            "tps": round(out_tok / dur, 1) if out_tok else 0,
-                            "cache_hit": state["tokens"].get("cache_hit", 0),
-                        }
-                        state["last_turn"] = state["turn"]
-                        stats["tasks"] += 1
-                        stats["mood"] = min(100, stats["mood"] + 4)
-                        stats["battery"] = max(0, stats["battery"] - 3)
-                        save_stats()
-                        state["stats"] = stats
-                    elif time.time() - state["finished_at"] > 6 and state["pose"] in ("success",):
+                        state["chat"] = None
+                    if now - (state.get("finished_at") or 0) > 6 and state["pose"] in ("success",):
                         state["pose"] = "idle"
-                last_status = "idle"
+
+            if now - last_save > 20:
+                save_activity()
+                last_save = now
         except Exception:
             pass
 
@@ -207,6 +271,8 @@ class H(BaseHTTPRequestHandler):
                 stats["mood"] = min(100, stats["mood"] + 5)
             elif act == "sleep":
                 stats["battery"] = min(100, stats["battery"] + 10)
+            elif act in ("test_sound", "beep"):
+                state["beep"] = time.time()
             save_stats()
             out = {k: round(v, 1) for k, v in stats.items()}
         self._send({"ok": True, "stats": out})
@@ -223,6 +289,15 @@ class H(BaseHTTPRequestHandler):
 
 
 if __name__ == "__main__":
+    import socket
+    probe = socket.socket()
+    try:
+        probe.bind(("127.0.0.1", PORT))
+    except OSError:
+        print("bridge already running on %d, exit" % PORT)
+        raise SystemExit(0)
+    finally:
+        probe.close()
     threading.Thread(target=poller, daemon=True).start()
     print("bridge v2 on http://127.0.0.1:%d/state" % PORT)
     ThreadingHTTPServer(("127.0.0.1", PORT), H).serve_forever()

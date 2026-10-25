@@ -23,3 +23,6 @@ __pycache__/
 *.pyc
 .DS_Store
 Thumbs.db
+overlay/activity.json 
+overlay/*.bak 
+overlay/dist/*.bak 

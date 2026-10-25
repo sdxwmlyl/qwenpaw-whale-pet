@@ -68,6 +68,7 @@ const AUDIO = {
 };
 let soundOn = localStorage.getItem("soundOn") !== "0";
 let prevPermission = false;
+let prevBeep = 0;
 
 function play(kind) {
   if (!soundOn) return;
@@ -165,8 +166,16 @@ async function poll() {
       setPose("failure", 2600);
       say("出错了…我看看日志", 2600);
     }
-    if (d.permission && !prevPermission) play("alert");
+    if (d.permission && !prevPermission) {
+      play("alert");
+      say("⚠️ 有权限要你批一下", 5000);
+    }
     prevPermission = !!d.permission;
+    if (d.beep && d.beep !== prevBeep) {
+      prevBeep = d.beep;
+      play("alert");
+      say("🔔 测试音", 1800);
+    }
 
     const working = d.status === "working";
     if (working) {
