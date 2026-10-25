@@ -14,6 +14,18 @@ per-turn token & tok/s report, click-through mode, and 47 wired reaction states.
 
 ![pose](docs/screenshots/02-pose-and-stats.png)
 
+
+---
+
+## 下载 / Download
+
+- **安装包**：[Releases](https://github.com/sdxwmlyl/qwenpaw-whale-pet/releases) → `QwenPaw Whale Pet v0.1.0`
+  （Windows x64 · NSIS 安装器，由 GitHub Actions 构建）
+- **免安装版**：Release 附件里的 `qwenpaw-whale-pet-win64.zip`（解压后双击 `start.bat`）
+- 也可以自行构建：见下方“快速开始”
+
+> 仅 Windows 已验证；macOS / Linux 需要自己 `cargo build`，未测试。
+
 ---
 
 ## 和原版相比，这个 fork 做了什么
