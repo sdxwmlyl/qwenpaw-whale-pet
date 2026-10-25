@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>鲸鱼娘</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="stage">
+  <div id="bubble" class="bubble"></div>
+
+  <div id="hud" class="hud">
+    <div class="row"><span>⚡</span><div class="bar"><i id="bar-battery"></i></div><b id="v-battery">0</b></div>
+    <div class="row"><span>💗</span><div class="bar"><i id="bar-mood"></i></div><b id="v-mood">0</b></div>
+    <div class="row"><span>🍙</span><div class="bar"><i id="bar-satiety"></i></div><b id="v-satiety">0</b></div>
+  </div>
+
+  <div id="pet" class="pet">
+    <img id="sprite" src="assets/idle.webp" alt="鲸鱼娘">
+  </div>
+
+  <div id="menu" class="menu" hidden>
+    <button data-act="feed">🍙 投喂</button>
+    <button data-act="headpat">🤚 摸头</button>
+    <button data-act="sleep">😴 去睡觉</button>
+    <button data-act="hud">📊 显示/隐藏数值</button>
+    <div class="sizes">
+      <span>大小</span>
+      <button data-size="180">小</button>
+      <button data-size="240">中</button>
+      <button data-size="300">大</button>
+      <button data-size="360">特大</button>
+    </div>
+    <button data-act="hide">🙈 隐藏</button>
+    <button data-act="quit">❌ 退出</button>
+  </div>
+</div>
+<script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,21 @@
+# 本项目未包含的运行产物
+overlay/src-tauri/target/
+overlay/src-tauri/gen/
+overlay/src-tauri/Cargo.lock
+overlay/*.log
+overlay/_req.bin
+overlay/_resp.bin
+overlay/stats.json
+
+# 早期 PyQt 原型（保留在本机，不入库）
+app/
+
+# 上游完整仓库（只提交本项目实际用到的素材）
+whale-musume-src/
+
+# 本地截图与临时文件
+shots/
+__pycache__/
+*.pyc
+.DS_Store
+Thumbs.db

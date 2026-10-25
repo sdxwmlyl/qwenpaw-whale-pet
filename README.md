@@ -1,0 +1,109 @@
+# QwenPaw Whale Pet · 鲸鱼娘桌宠（QwenPaw 版）
+
+把 [dsh-whale-musume](https://github.com/Sutera-Diffusus/dsh-whale-musume)（DeepSeek Harness 的鲸鱼娘桌宠，MIT）
+移植到 **QwenPaw** 的独立桌面外挂。
+
+> 这不是简单换皮：原版的宿主是 DSH 插件（注入页面 DOM），本项目改成**独立进程 + 本地状态桥**，
+> 并在此基础上追加了**工具姿势、三项数值、token 结算、穿透模式、47 个状态触发规则**等改造。
+
+---
+
+## 和原版相比，这个 fork 做了什么
+
+| 能力 | 原版（DSH 插件） | 本项目 |
+|---|---|---|
+| 宿主形态 | 注入 DSH 网页/桌面的 cordis 插件 | **独立 Tauri 外挂**，透明置顶、不进任务栏，不受宿主升级影响 |
+| 状态来源 | 读 DSH 页面 DOM 标记 | **`bridge.py` 轮询 QwenPaw `GET /api/chats`**，提取 `status` / 工具名 / token 用量 |
+| 工具姿势 | 按 DSH 工具卡切换 | **映射 QwenPaw 工具名** → 审阅 / 记笔记 / 调试 / 部署 / 会议 / 内存 / 截止 / 老板 / 协作 |
+| 数值系统 | 有 | **电量 / 心情 / 饱食度**：60 秒衰减、工作耗电、投喂与摸头加成、`stats.json` 持久化 |
+| token 结算 | 无 | **每轮结束显示** `本轮 N tokens · X tok/s · Y 秒 · 缓存命中 Z%`（取自 `qwenpaw_turn_usage`） |
+| 通知气泡 | 短暂提示 | **常驻**，点击关闭，下一轮任务开始才替换 |
+| 交互 | 摸头 / 投喂 / 小游戏 / 成就 | 摸头、投喂、**双击调戏**、**悬停好奇**、**空闲小动作**（尾巴/ wink / 墨镜 / meme）、**连续摸头害羞**、**连续完成出星**、**报错反应**、**夜间姿态**、**节日彩蛋**（圣诞/万圣/情人节/中秋/春节） |
+| 窗口 | 跟随宿主 | 透明置顶、可拖动、**四档尺寸**、**穿透模式**（托盘切换，鼠标可穿过）、托盘显示隐藏 |
+| 状态覆盖 | 多状态 | **82 个素材中已接 47 个触发规则**，0 缺失引用 |
+
+---
+
+## 架构
+
+```
+QwenPaw (GET /api/chats, /api/chats/{id})
+        │  轮询：status / 最后工具 / qwenpaw_turn_usage
+        ▼
+   bridge.py  ──►  http://127.0.0.1:7799/state
+        │           { status, tool, pose, tokens, last_turn{tps,...}, stats }
+        ▼
+Tauri 外挂（透明窗口 + 原版 WebP 素材 + CSS 动效）
+```
+
+**唯一契约是 `/state`。** 后续接 PawApp 插件时，只要插件后端提供同一个 `/state`，外挂不用改一行代码。
+
+---
+
+## 快速开始（Windows）
+
+```bat
+:: 1) 装依赖（只需一次）
+pip install -i https://mirrors.aliyun.com/pypi/simple PyQt6
+
+:: 2) 启动（会自动拉起状态桥）
+wscript 启动鲸鱼娘.vbs
+```
+
+或手动：
+
+```bat
+D:\Miniconda\pythonw.exe overlay\bridge.py
+overlay\src-tauri\target\release\whale-pet.exe
+```
+
+构建外挂：
+
+```bat
+cd overlay\src-tauri
+cargo build --release
+```
+
+> 需要 Rust（stable）、WebView2、MSVC Build Tools。首次构建约 1 分钟（依赖已缓存）。
+
+---
+
+## 交互
+
+| 操作 | 效果 |
+|---|---|
+| 左键拖 | 移动位置（记忆） |
+| 单击 / 12 秒内 3 次 | 摸头 / 害羞 |
+| 双击 | 调戏 |
+| 悬停 | 好奇 |
+| 右键 | 投喂 / 摸头 / 睡觉 / 显示数值 / 四档大小 / 隐藏 / 退出 |
+| 托盘右键 | 显示隐藏 / **👻 穿透模式** / 退出 |
+| F9 | 弹一条样例 token 通知（调试用） |
+
+---
+
+## 目录
+
+```
+overlay/
+├─ dist/           前端（index.html / app.js / style.css / assets）
+├─ src-tauri/      Tauri 外挂（Rust）
+├─ bridge.py       状态桥：工具名 / token / 三项数值
+├─ launch.bat      幂等启动
+├─ stop_pet.bat    停止
+└─ stats.json      数值持久化（运行时生成）
+shared/
+└─ state.schema.json   /state 契约
+docs/
+└─ screenshots/
+```
+
+---
+
+## 许可与署名
+
+- 本项目代码：**MIT**（见 `LICENSE`）
+- 角色与素材：来自 [Sutera-Diffusus/dsh-whale-musume](https://github.com/Sutera-Diffusus/dsh-whale-musume)，**MIT**，版权归原作者
+- 详见 `NOTICE`
+
+如果你要二次分发，请保留上游版权声明；素材请勿单独拆出当作自有美术资源发布。

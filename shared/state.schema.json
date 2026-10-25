@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "QwenPaw Whale Pet state",
+  "type": "object",
+  "required": ["status", "pose"],
+  "properties": {
+    "status": { "type": "string", "enum": ["idle", "working"] },
+    "tool": { "type": ["string", "null"], "description": "QwenPaw 当前轮最后一次工具名" },
+    "pose": {
+      "type": "string",
+      "enum": ["idle", "review", "idea", "debug", "deploy", "meeting", "ram",
+               "deadline", "boss", "slack", "thinking", "tool", "success", "sleep"]
+    },
+    "error": { "type": "boolean" },
+    "tokens": {
+      "type": "object",
+      "properties": {
+        "prompt": { "type": "number" },
+        "output": { "type": "number" },
+        "cache_hit": { "type": "number" },
+        "context": { "type": "number" }
+      }
+    },
+    "last_turn": {
+      "type": ["object", "null"],
+      "properties": {
+        "seconds": { "type": "number" },
+        "output": { "type": "number" },
+        "tps": { "type": "number" },
+        "cache_hit": { "type": "number" }
+      }
+    },
+    "finished_at": { "type": "number" },
+    "stats": {
+      "type": "object",
+      "properties": {
+        "battery": { "type": "number" },
+        "mood": { "type": "number" },
+        "satiety": { "type": "number" },
+        "tasks": { "type": "number" },
+        "tokens": { "type": "number" }
+      }
+    }
+  }
+}
