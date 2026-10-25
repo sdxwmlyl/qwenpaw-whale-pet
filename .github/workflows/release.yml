@@ -28,7 +28,21 @@ jobs:
           projectPath: overlay
           tagName: ${{ github.ref_name }}
           releaseName: "QwenPaw Whale Pet ${{ github.ref_name }}"
-          releaseBody: "QwenPaw 鲸鱼娘桌宠。安装包见下方 Assets（NSIS 安装器）。"
+          releaseBody: |
+            QwenPaw 鲸鱼娘桌宠 v0.1.1。
+
+            ### 新增
+            - **工具调用需要审批时提醒**：桥每 2 秒轮询 `GET /api/approval/list`（本地请求、几十字节），有待审批就响一声 + 气泡「⚠️ 有权限要你批一下」
+            - 演示钩子 `POST /action {"act":"demo_permission"}`，方便验收提醒效果
+
+            ### 修复
+            - **任务结束没有完成音 / 一直停在“工作中”姿势**：旧逻辑“有任意会话在跑就算忙”，改为逐会话跟踪 `running → idle`，任一会话收工即触发完成事件（8 秒庆祝锁）
+            - 首次使用前需点一下桌宠，WebView2 才允许自动播放提示音；未点时气泡会提示
+
+            ### 性能
+            - 状态桥不再每 2 秒拉取整个会话（大会话单次 12MB），改为 8 / 15 / 30 秒成本退避
+
+            安装包见下方 Assets（NSIS 安装器）；免安装便携包为 `qwenpaw-whale-pet-win64.zip`。
           releaseDraft: true
           prerelease: false
           args: --bundles nsis
