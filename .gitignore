@@ -1,7 +1,6 @@
 # 本项目未包含的运行产物
 overlay/src-tauri/target/
 overlay/src-tauri/gen/
-overlay/src-tauri/Cargo.lock
 overlay/*.log
 overlay/_req.bin
 overlay/_resp.bin
@@ -12,6 +11,11 @@ app/
 
 # 上游完整仓库（只提交本项目实际用到的素材）
 whale-musume-src/
+
+# 打包产物
+release/
+overlay/build/
+overlay/dist/bridge.exe
 
 # 本地截图与临时文件
 shots/
