@@ -30,10 +30,19 @@
     }
   },
   "bundle": {
-    "active": false,
+    "active": true,
+    "targets": [
+      "nsis"
+    ],
     "icon": [
       "icons/icon.ico",
       "icons/icon.png"
+    ],
+    "publisher": "sdxwmlyl",
+    "shortDescription": "QwenPaw 鲸鱼娘桌宠",
+    "longDescription": "QwenPaw desktop pet overlay: tool-aware poses, stats, token report and sound alerts.",
+    "resources": [
+      "../bridge.py"
     ]
   }
 }
