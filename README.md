@@ -3,8 +3,16 @@
 把 [dsh-whale-musume](https://github.com/Sutera-Diffusus/dsh-whale-musume)（DeepSeek Harness 的鲸鱼娘桌宠，MIT）
 移植到 **QwenPaw** 的独立桌面外挂。
 
+![desktop](docs/screenshots/01-desktop.png)
+
+**English:** A QwenPaw port of the dsh-whale-musume desktop pet — independent Tauri overlay,
+local state bridge (`/api/chats` → `/state`), tool-aware poses, stamina/mood/satiety stats,
+per-turn token & tok/s report, click-through mode, and 47 wired reaction states.
+
 > 这不是简单换皮：原版的宿主是 DSH 插件（注入页面 DOM），本项目改成**独立进程 + 本地状态桥**，
 > 并在此基础上追加了**工具姿势、三项数值、token 结算、穿透模式、47 个状态触发规则**等改造。
+
+![pose](docs/screenshots/02-pose-and-stats.png)
 
 ---
 
@@ -37,6 +45,10 @@ Tauri 外挂（透明窗口 + 原版 WebP 素材 + CSS 动效）
 ```
 
 **唯一契约是 `/state`。** 后续接 PawApp 插件时，只要插件后端提供同一个 `/state`，外挂不用改一行代码。
+
+---
+
+![token](docs/screenshots/03-token-notice.png)
 
 ---
 
