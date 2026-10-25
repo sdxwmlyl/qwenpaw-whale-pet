@@ -26,3 +26,4 @@ Thumbs.db
 overlay/activity.json 
 overlay/*.bak 
 overlay/dist/*.bak 
+release/ 

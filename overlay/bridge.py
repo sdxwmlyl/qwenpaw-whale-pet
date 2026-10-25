@@ -148,9 +148,10 @@ def poller():
             activity.clear()
             activity.update(fresh_act)
 
+            demo_on = now < (state.get("perm_demo_until") or 0)
             with lock:
-                state["approval_pending"] = pend
-                state["permission"] = waiting_any or pend > 0
+                state["approval_pending"] = pend or (1 if demo_on else 0)
+                state["permission"] = waiting_any or pend > 0 or demo_on
 
             running = [c for c in chats if not c.get("archived") and activity.get(c["id"], {}).get("status") == "running"]
 
@@ -282,6 +283,8 @@ class H(BaseHTTPRequestHandler):
                 stats["battery"] = min(100, stats["battery"] + 10)
             elif act in ("test_sound", "beep"):
                 state["beep"] = time.time()
+            elif act == "demo_permission":
+                state["perm_demo_until"] = time.time() + 8
             save_stats()
             out = {k: round(v, 1) for k, v in stats.items()}
         self._send({"ok": True, "stats": out})

@@ -48,8 +48,9 @@ per-turn token & tok/s report, click-through mode, and 47 wired reaction states.
 ## 架构
 
 ```
-QwenPaw (GET /api/chats, /api/chats/{id})
-        │  轮询：status / 最后工具 / qwenpaw_turn_usage
+QwenPaw (GET /api/chats, /api/chats/{id}, /api/approval/list)
+        │  轮询：status / 最后工具 / qwenpaw_turn_usage / 待审批数
+        │  完成事件：逐会话跟踪 running → idle（任一会话收工即触发）
         ▼
    bridge.py  ──►  http://127.0.0.1:7799/state
         │           { status, tool, pose, tokens, last_turn{tps,...}, stats }
@@ -62,6 +63,23 @@ Tauri 外挂（透明窗口 + 原版 WebP 素材 + CSS 动效）
 ---
 
 ![token](docs/screenshots/03-token-notice.png)
+
+---
+
+## 弹权限就提醒
+
+QwenPaw 遇到需要你批准的工具调用时，桥每 2 秒问一次 `GET /api/approval/list`
+（本地请求、只回几十字节，比订阅 SSE 轻得多），一旦有待审批项就：
+
+- 响一声提醒音（`alert.wav`）
+- 气泡写「⚠️ 有权限要你批一下」
+- 你批准或拒绝之后 `pending` 归零，状态自动复位
+
+![permission alert](docs/screenshots/04-permission-alert.png)
+
+> 顺带说明：**结束音**是按会话跟踪 `running → idle` 触发的，所以哪怕别的会话还挂着，
+> 当前这个会话干完活也会正常响一声——早期版本用「有任意会话在跑就算忙」，会一直卡在
+> 工作姿势、永远不响，已修。
 
 ---
 
@@ -134,6 +152,7 @@ docs/
 - 位置：`overlay/dist/audio/success.wav`、`alert.wav`
 - 触发：
   - `running → idle` 且无错误 → **成功音**
+  - `/api/approval/list` 出现待审批项（工具调用需要你批准）→ **提醒音 + 气泡**
   - 工具输出含 error/traceback，或会话进入 waiting / approval 类状态 → **提醒音**
 - 浏览器自动播放策略可能在**你第一次点击桌宠之前**拦下声音；被拦时气泡会提示“声音被系统拦了”
 
@@ -165,6 +184,8 @@ The original is a DeepSeek Harness plugin that injects into the host page; this 
 | Stats | — | **battery / mood / satiety** with 60s decay, feeding & head-pat bonuses, persisted |
 | Token report | — | per-turn `output tokens · tok/s · seconds · cache hit`, shown in a **sticky bubble** |
 | Sound | — | cute **success** chime and **attention** alert (Kenney CC0), for multi-monitor work |
+| Approval watch | — | polls `GET /api/approval/list` every 2s; a pending approval plays the alert and shows a "⚠️ approval needed" bubble |
+| Finish cue | — | per-session `running → idle` transitions, so a turn always gets its completion sound even while other sessions are still running |
 | Interaction | head-pat / feed / mini-game | hover, double-click tease, idle fidgets, repeated head-pat blush, streak star, error reaction, night & festival states |
 | Window | follows host | four sizes, **click-through mode**, tray menu, drag & position memory |
 
