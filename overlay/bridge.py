@@ -107,6 +107,7 @@ def save_activity():
 RUN_KEYS = ("running", "working", "busy")
 WAIT_KEYS = ("waiting", "waiting_approval", "approval", "pending", "needs_approval")
 CELEBRATE_SEC = 8.0
+detail_cache = {}
 
 
 def poller():
@@ -178,12 +179,20 @@ def poller():
 
             elif running and now >= celebrate_until:
                 disp = max(running, key=lambda c: activity.get(c["id"], {}).get("started") or 0)
-                try:
-                    detail = get_json("/api/chats/%s" % disp["id"], timeout=8)
-                except Exception:
-                    detail = {}
-                msgs = tail_turn(detail.get("messages") or [])
-                tool, usage, err = extract(msgs)
+                # 详情接口返回整个会话（大会话可达十几 MB），必须节流 + 按耗时退避
+                cache = detail_cache
+                interval = cache.get("every", 8.0)
+                if cache.get("cid") != disp["id"] or now - cache.get("at", 0) >= interval:
+                    t0 = time.time()
+                    try:
+                        detail = get_json("/api/chats/%s" % disp["id"], timeout=15)
+                    except Exception:
+                        detail = {}
+                    spent = time.time() - t0
+                    cache["every"] = 30.0 if spent > 0.8 else (15.0 if spent > 0.4 else 8.0)
+                    tool, usage, err = extract(tail_turn(detail.get("messages") or []))
+                    cache.update({"cid": disp["id"], "at": now, "tool": tool, "usage": usage, "err": err})
+                tool, usage, err = cache.get("tool"), cache.get("usage"), cache.get("err")
                 pose = TOOL_POSE.get(tool, "tool")
                 with lock:
                     if state["status"] != "working":
