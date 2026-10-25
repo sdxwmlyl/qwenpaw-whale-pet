@@ -62,6 +62,24 @@ const LINES = {
   star: ["今天也很努力呢 ✨", "连续完成，好厉害"],
 };
 
+const AUDIO = {
+  success: new Audio("audio/success.wav"),
+  alert: new Audio("audio/alert.wav"),
+};
+let soundOn = localStorage.getItem("soundOn") !== "0";
+let prevPermission = false;
+
+function play(kind) {
+  if (!soundOn) return;
+  const a = AUDIO[kind];
+  if (!a) return;
+  try {
+    a.currentTime = 0;
+    const p = a.play();
+    if (p && p.catch) p.catch(() => say("声音被系统拦了（需要先点一下我）", 2400));
+  } catch (e) {}
+}
+
 const sprite = document.getElementById("sprite");
 const bubble = document.getElementById("bubble");
 const menu = document.getElementById("menu");
@@ -147,6 +165,9 @@ async function poll() {
       setPose("failure", 2600);
       say("出错了…我看看日志", 2600);
     }
+    if (d.permission && !prevPermission) play("alert");
+    prevPermission = !!d.permission;
+
     const working = d.status === "working";
     if (working) {
       idleSince = Date.now();
@@ -174,6 +195,7 @@ async function poll() {
       } else {
         say(pick(["搞定啦！", "任务完成"]), 2400);
       }
+      play(d.error ? "alert" : "success");
       if (streak >= 3) {
         streak = 0;
         setTimeout(() => { setPose("star", 2600); say(pick(LINES.star), 3000); }, 2600);
@@ -253,6 +275,11 @@ menu.addEventListener("click", async (e) => {
   } else if (act === "sleep") {
     setPose("sleep");
     fetch("http://127.0.0.1:7799/action", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ act: "sleep" }) }).catch(() => {});
+  } else if (act === "sound") {
+    soundOn = !soundOn;
+    localStorage.setItem("soundOn", soundOn ? "1" : "0");
+    say(soundOn ? "声音已开" : "声音已关", 1800);
+    if (soundOn) play("success");
   } else if (act === "hud") {
     hud.hidden = !hud.hidden;
     localStorage.setItem("hudHidden", hud.hidden ? "1" : "0");
@@ -311,6 +338,8 @@ function festivalToday() {
 }
 
 window.addEventListener("keydown", (e) => {
+  if (e.key === "F10") { play("success"); say("成功音 · 测试", 1600); }
+  if (e.key === "F11") { play("alert"); say("提醒音 · 测试", 1600); }
   if (e.key === "F9") {
     say("搞定！本轮 16,538 tokens · 23.4 tok/s · 86 秒 · 缓存 99.96%", 0, "点我关闭");
   }

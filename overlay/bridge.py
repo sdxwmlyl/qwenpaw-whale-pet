@@ -95,7 +95,9 @@ def poller():
     while True:
         try:
             chats = get_json("/api/chats")
-            running = [c for c in chats if str(c.get("status", "")).lower() in ("running", "working", "busy")]
+            sr = lambda c: str(c.get("status", "")).lower()
+            waiting = [c for c in chats if sr(c) in ("waiting", "waiting_approval", "approval", "pending", "needs_approval")]
+            running = [c for c in chats if sr(c) in ("running", "working", "busy")]
             if running:
                 c = sorted(running, key=lambda x: x.get("updated_at") or "", reverse=True)[0]
                 detail = get_json("/api/chats/%s" % c["id"])
@@ -119,8 +121,11 @@ def poller():
                 if last_status != "working":
                     last_status = "working"
                     turn_start = time.time()
+                with lock:
+                    state["permission"] = bool(waiting)
             else:
                 with lock:
+                    state["permission"] = bool(waiting)
                     if last_status == "working":
                         state["status"] = "idle"
                         state["pose"] = "success"
