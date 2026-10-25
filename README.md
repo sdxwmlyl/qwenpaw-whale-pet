@@ -132,3 +132,77 @@ docs/
 - 详见 `NOTICE`
 
 如果你要二次分发，请保留上游版权声明；素材请勿单独拆出当作自有美术资源发布。
+
+---
+
+## English
+
+### What this is
+
+A **QwenPaw port** of [dsh-whale-musume](https://github.com/Sutera-Diffusus/dsh-whale-musume) (MIT).
+The original is a DeepSeek Harness plugin that injects into the host page; this project turns it into a
+**standalone Tauri desktop overlay** driven by a local state bridge, and adds a set of behaviours on top.
+
+### What this fork adds
+
+| Area | Original | This fork |
+|---|---|---|
+| Host | cordis plugin inside DSH UI | **standalone Tauri overlay**: transparent, always-on-top, hidden from taskbar |
+| State source | DSH DOM markers | **`bridge.py` polls QwenPaw `GET /api/chats`**: status, last tool, token usage |
+| Poses | DSH tool cards | **QwenPaw tool → pose mapping**: review / note / debug / deploy / meeting / ram / deadline / boss / slack |
+| Stats | — | **battery / mood / satiety** with 60s decay, feeding & head-pat bonuses, persisted |
+| Token report | — | per-turn `output tokens · tok/s · seconds · cache hit`, shown in a **sticky bubble** |
+| Sound | — | cute **success** chime and **attention** alert (Kenney CC0), for multi-monitor work |
+| Interaction | head-pat / feed / mini-game | hover, double-click tease, idle fidgets, repeated head-pat blush, streak star, error reaction, night & festival states |
+| Window | follows host | four sizes, **click-through mode**, tray menu, drag & position memory |
+
+82 state images are bundled; **47 of them are wired to triggers**, with zero missing references.
+
+### Architecture
+
+```
+QwenPaw (GET /api/chats, /api/chats/{id})
+        │  status / last tool / qwenpaw_turn_usage
+        ▼
+   bridge.py  ──►  http://127.0.0.1:7799/state
+        │          { status, tool, pose, tokens, last_turn{tps,...}, stats }
+        ▼
+Tauri overlay (transparent window + upstream WebP assets + CSS motion)
+```
+
+`/state` is the only contract. A future PawApp plugin can serve the same endpoint and the overlay
+needs no changes.
+
+### Quick start (Windows)
+
+```bat
+pip install -i https://mirrors.aliyun.com/pypi/simple PyQt6
+wscript 启动鲸鱼娘.vbs
+```
+
+Build the overlay yourself:
+
+```bat
+cd overlay\src-tauri
+cargo build --release
+```
+
+Requires Rust (stable), WebView2 and MSVC Build Tools.
+
+### Interaction
+
+drag to move · click to head-pat (3x = blush) · double-click to tease · hover = curious ·
+right-click menu (feed / sleep / HUD / sound / size / hide / quit) · tray menu (show-hide / click-through / quit)
+
+### Known limits
+
+- QwenPaw's `/api/chats` exposes only `idle` / `running`; there is no persisted "waiting for approval" state
+  (`/api/notifications`, `/api/permissions`, `/api/approvals` all 404). The success/error sounds work;
+  the permission alert needs the console SSE stream instead.
+- WebView2 autoplay policy may block sound until you click the pet once.
+- Tool pose follows the **last** tool call, with up to ~2s lag.
+
+### License
+
+MIT, with upstream attribution — see `LICENSE` and `NOTICE`. Artwork belongs to the upstream author;
+please don't republish the assets as your own pack.
