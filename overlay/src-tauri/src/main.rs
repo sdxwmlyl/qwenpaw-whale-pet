@@ -71,6 +71,11 @@ fn top_left(app: &tauri::AppHandle) {
     }
 }
 
+#[tauri::command]
+fn drag_start(window: tauri::WebviewWindow) -> Result<(), String> {
+    window.start_dragging().map_err(|e| e.to_string())
+}
+
 fn toggle_window(app: &tauri::AppHandle) {
     if let Some(w) = app.get_webview_window("main") {
         let visible = w.is_visible().unwrap_or(false);
@@ -144,6 +149,7 @@ fn main() {
             bridge::start(dir);
             Ok(())
         })
+        .invoke_handler(tauri::generate_handler![drag_start])
         .on_window_event(|window, event| {
             if let WindowEvent::Moved(pos) = event {
                 save_pos(window.app_handle(), pos.x, pos.y);

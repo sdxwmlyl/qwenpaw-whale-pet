@@ -230,16 +230,19 @@ pet.addEventListener("mousedown", async (e) => {
   dragging = true; moved = false;
   downPos = { x: e.screenX, y: e.screenY };
   dragWin = null; dragOrigin = null; dragDelta = { x: 0, y: 0 };
-  const T = window.__TAURI__ && window.__TAURI__.window;
+  const T = window.__TAURI__;
   if (!T) return;
+  // 优先走 Rust 原生拖拽（DPI/多屏最稳）
+  const inv = (T.core && T.core.invoke) || (T.tauri && T.tauri.invoke);
+  if (inv) {
+    try { await inv("drag_start"); return; } catch (err) {}
+  }
+  // 兜底：自己算位移
   try {
-    dragWin = T.getCurrentWindow();
+    dragWin = T.window.getCurrentWindow();
     const p = await dragWin.outerPosition();
     dragOrigin = { x: Number(p.x) || 0, y: Number(p.y) || 0 };
-  } catch (err) {
-    dragWin = null;
-    try { T.getCurrentWindow().startDragging(); } catch (e2) {}
-  }
+  } catch (err) { dragWin = null; }
 });
 
 window.addEventListener("mousemove", (e) => {
@@ -253,15 +256,16 @@ window.addEventListener("mousemove", (e) => {
   dragRaf = requestAnimationFrame(() => {
     dragRaf = 0;
     try {
-      const T = window.__TAURI__.window;
+      const W = window.__TAURI__.window;
       const dpr = window.devicePixelRatio || 1;
-      dragWin.setPosition(new T.PhysicalPosition(
+      dragWin.setPosition(new W.PhysicalPosition(
         Math.round(dragOrigin.x + dragDelta.x * dpr),
         Math.round(dragOrigin.y + dragDelta.y * dpr)
       ));
     } catch (err) {}
   });
 });
+
 window.addEventListener("mouseup", (e) => {
   if (!dragging) return;
   dragging = false;
