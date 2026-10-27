@@ -29,20 +29,20 @@ jobs:
           tagName: ${{ github.ref_name }}
           releaseName: "QwenPaw Whale Pet ${{ github.ref_name }}"
           releaseBody: |
-            QwenPaw 鲸鱼娘桌宠 v0.1.1。
+            QwenPaw 鲸鱼娘桌宠 v0.1.2。
 
-            ### 新增
-            - **工具调用需要审批时提醒**：桥每 2 秒轮询 `GET /api/approval/list`（本地请求、几十字节），有待审批就响一声 + 气泡「⚠️ 有权限要你批一下」
-            - 演示钩子 `POST /action {"act":"demo_permission"}`，方便验收提醒效果
+            ### 重要：不再附带第二个 exe
+            - 早期版本用 PyInstaller 打包的 `bridge.exe` 会被 **Windows Defender 误判并隔离删除**（实测 ThreatID 2147731250），装完就失联。
+            - 现在状态桥用 **Rust 重写并编进主程序**：只有一个 `whale-pet.exe`，无第二进程、无 PyInstaller 特征，下载安装不再触发误报。
 
-            ### 修复
-            - **任务结束没有完成音 / 一直停在“工作中”姿势**：旧逻辑“有任意会话在跑就算忙”，改为逐会话跟踪 `running → idle`，任一会话收工即触发完成事件（8 秒庆祝锁）
-            - 首次使用前需点一下桌宠，WebView2 才允许自动播放提示音；未点时气泡会提示
+            ### 新增 / 修复
+            - **可自由拖动**：改用 Tauri 原生 `start_dragging`，支持 150% 缩放与多屏；位置写入 `%APPDATA%\com.qwenpaw.whalepet\window_pos.txt`，重启回到原处
+            - 托盘新增「↖ 移到左上角（躲开审批窗）」「↘ 复位到右下角」
+            - 审批提醒：轮询 `GET /api/approval/list`，有待审就响提示音 + 气泡
+            - 完成音按会话跟踪 `running → idle`，不会被其它会话拖住
+            - 会话详情拉取节流（8 / 15 / 30 秒退避），不再每 2 秒拉 12MB
 
-            ### 性能
-            - 状态桥不再每 2 秒拉取整个会话（大会话单次 12MB），改为 8 / 15 / 30 秒成本退避
-
-            安装包见下方 Assets（NSIS 安装器）；免安装便携包为 `qwenpaw-whale-pet-win64.zip`。
+            安装包见下方 Assets；免安装便携包为 `qwenpaw-whale-pet-win64.zip`（21MB，仅一个 exe）。
           releaseDraft: true
           prerelease: false
           args: --bundles nsis
