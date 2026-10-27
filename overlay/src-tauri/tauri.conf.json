@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "WhalePet",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "identifier": "com.qwenpaw.whalepet",
   "build": {
     "frontendDist": "../dist"
@@ -41,8 +41,6 @@
     "publisher": "sdxwmlyl",
     "shortDescription": "QwenPaw 鲸鱼娘桌宠",
     "longDescription": "QwenPaw desktop pet overlay: tool-aware poses, stats, token report and sound alerts.",
-    "resources": [
-      "../bridge.py"
-    ]
+    "resources": []
   }
 }

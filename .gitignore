@@ -26,4 +26,12 @@ Thumbs.db
 overlay/activity.json 
 overlay/*.bak 
 overlay/dist/*.bak 
-release/ 
+release/
+
+# 宣传片中间产物（可重建，见 promo/README.md）
+promo/frames/
+promo/tts/
+promo/voice_v2.m4a
+promo/timeline_v2.json
+promo/chk_*.png
+

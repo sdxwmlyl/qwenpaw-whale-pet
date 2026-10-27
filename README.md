@@ -33,7 +33,7 @@ per-turn token & tok/s report, click-through mode, and 47 wired reaction states.
 | 能力 | 原版（DSH 插件） | 本项目 |
 |---|---|---|
 | 宿主形态 | 注入 DSH 网页/桌面的 cordis 插件 | **独立 Tauri 外挂**，透明置顶、不进任务栏，不受宿主升级影响 |
-| 状态来源 | 读 DSH 页面 DOM 标记 | **`bridge.py` 轮询 QwenPaw `GET /api/chats`**，提取 `status` / 工具名 / token 用量 |
+| 状态来源 | 读 DSH 页面 DOM 标记 | **内置 Rust 桥轮询 QwenPaw `GET /api/chats` 与 `/api/approval/list`**，提取 `status` / 工具名 / token 用量 / 待审批数 |
 | 工具姿势 | 按 DSH 工具卡切换 | **映射 QwenPaw 工具名** → 审阅 / 记笔记 / 调试 / 部署 / 会议 / 内存 / 截止 / 老板 / 协作 |
 | 数值系统 | 有 | **电量 / 心情 / 饱食度**：60 秒衰减、工作耗电、投喂与摸头加成、`stats.json` 持久化 |
 | token 结算 | 无 | **每轮结束显示** `本轮 N tokens · X tok/s · Y 秒 · 缓存命中 Z%`（取自 `qwenpaw_turn_usage`） |
@@ -52,7 +52,7 @@ QwenPaw (GET /api/chats, /api/chats/{id}, /api/approval/list)
         │  轮询：status / 最后工具 / qwenpaw_turn_usage / 待审批数
         │  完成事件：逐会话跟踪 running → idle（任一会话收工即触发）
         ▼
-   bridge.py  ──►  http://127.0.0.1:7799/state
+   内置桥 (Rust) ──►  http://127.0.0.1:7799/state
         │           { status, tool, pose, tokens, last_turn{tps,...}, stats }
         ▼
 Tauri 外挂（透明窗口 + 原版 WebP 素材 + CSS 动效）
@@ -65,6 +65,12 @@ Tauri 外挂（透明窗口 + 原版 WebP 素材 + CSS 动效）
 ![token](docs/screenshots/03-token-notice.png)
 
 ---
+
+## 为什么不再打包成独立 exe
+
+早期版本用 PyInstaller 把 `bridge.py` 打成 `bridge.exe`。**Windows Defender 会把 PyInstaller 单文件包误判为木马并直接隔离删除**（实测：`ThreatID 2147731250`，文件被删、桌宠失联）。
+
+现在状态桥用 **Rust 重写并编进主程序**：只有一个 `whale-pet.exe`，没有第二个进程、没有 PyInstaller 特征，下载/安装不再触发杀软误报，推广时也不用教用户加白名单。
 
 ## 弹权限就提醒
 
@@ -96,7 +102,7 @@ wscript 启动鲸鱼娘.vbs
 或手动：
 
 ```bat
-D:\Miniconda\pythonw.exe overlay\bridge.py
+（现已内置，不再需要单独启动；旧版调试可运行：D:\Miniconda\pythonw.exe overlay\bridge.py）
 overlay\src-tauri\target\release\whale-pet.exe
 ```
 
@@ -179,7 +185,7 @@ The original is a DeepSeek Harness plugin that injects into the host page; this 
 | Area | Original | This fork |
 |---|---|---|
 | Host | cordis plugin inside DSH UI | **standalone Tauri overlay**: transparent, always-on-top, hidden from taskbar |
-| State source | DSH DOM markers | **`bridge.py` polls QwenPaw `GET /api/chats`**: status, last tool, token usage |
+| State source | DSH DOM markers | **built-in Rust bridge polls QwenPaw `GET /api/chats` and `/api/approval/list`**: status, last tool, token usage, pending approvals |
 | Poses | DSH tool cards | **QwenPaw tool → pose mapping**: review / note / debug / deploy / meeting / ram / deadline / boss / slack |
 | Stats | — | **battery / mood / satiety** with 60s decay, feeding & head-pat bonuses, persisted |
 | Token report | — | per-turn `output tokens · tok/s · seconds · cache hit`, shown in a **sticky bubble** |
@@ -197,7 +203,7 @@ The original is a DeepSeek Harness plugin that injects into the host page; this 
 QwenPaw (GET /api/chats, /api/chats/{id})
         │  status / last tool / qwenpaw_turn_usage
         ▼
-   bridge.py  ──►  http://127.0.0.1:7799/state
+   内置桥 (Rust) ──►  http://127.0.0.1:7799/state
         │          { status, tool, pose, tokens, last_turn{tps,...}, stats }
         ▼
 Tauri overlay (transparent window + upstream WebP assets + CSS motion)

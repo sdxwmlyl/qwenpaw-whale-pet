@@ -222,17 +222,45 @@ async function poll() {
   } catch (e) {}
 }
 
-/* 交互 */
-pet.addEventListener("mousedown", (e) => {
+/* 交互：自己算位移移动窗口（不依赖 startDragging，兼容所有 Tauri 版本与 DPI 缩放） */
+let dragWin = null, dragOrigin = null, dragDelta = { x: 0, y: 0 }, dragRaf = 0;
+
+pet.addEventListener("mousedown", async (e) => {
   if (e.button !== 0) return;
   dragging = true; moved = false;
   downPos = { x: e.screenX, y: e.screenY };
-  const w = window.__TAURI__ && window.__TAURI__.window;
-  if (w) w.getCurrentWindow().startDragging();
+  dragWin = null; dragOrigin = null; dragDelta = { x: 0, y: 0 };
+  const T = window.__TAURI__ && window.__TAURI__.window;
+  if (!T) return;
+  try {
+    dragWin = T.getCurrentWindow();
+    const p = await dragWin.outerPosition();
+    dragOrigin = { x: Number(p.x) || 0, y: Number(p.y) || 0 };
+  } catch (err) {
+    dragWin = null;
+    try { T.getCurrentWindow().startDragging(); } catch (e2) {}
+  }
 });
+
 window.addEventListener("mousemove", (e) => {
   if (!dragging || !downPos) return;
-  if (Math.abs(e.screenX - downPos.x) > 4 || Math.abs(e.screenY - downPos.y) > 4) moved = true;
+  const dx = e.screenX - downPos.x;
+  const dy = e.screenY - downPos.y;
+  if (Math.abs(dx) > 4 || Math.abs(dy) > 4) moved = true;
+  if (!dragWin || !dragOrigin || !moved) return;
+  dragDelta = { x: dx, y: dy };
+  if (dragRaf) return;
+  dragRaf = requestAnimationFrame(() => {
+    dragRaf = 0;
+    try {
+      const T = window.__TAURI__.window;
+      const dpr = window.devicePixelRatio || 1;
+      dragWin.setPosition(new T.PhysicalPosition(
+        Math.round(dragOrigin.x + dragDelta.x * dpr),
+        Math.round(dragOrigin.y + dragDelta.y * dpr)
+      ));
+    } catch (err) {}
+  });
 });
 window.addEventListener("mouseup", (e) => {
   if (!dragging) return;
