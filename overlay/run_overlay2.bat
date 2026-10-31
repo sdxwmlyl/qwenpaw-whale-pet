@@ -1,5 +1,4 @@
 @echo off
 cd /d D:\ProjectWhalePet\overlay
-start "" /b D:\Miniconda\pythonw.exe bridge.py
-timeout /t 1 >nul
-start "" "D:\ProjectWhalePet\overlay\src-tauri\target\debug\whale-pet.exe"
+rem legacy launcher: python bridge removed, always run release build
+start "" "D:\ProjectWhalePet\overlay\src-tauri\target\release\whale-pet.exe"

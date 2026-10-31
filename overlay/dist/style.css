@@ -63,13 +63,17 @@ html, body {
 
 .menu {
   z-index: 12;
-  position: absolute; left: 50%; bottom: 8px; transform: translateX(-50%);
+  position: absolute; left: 50%; bottom: 6px; transform: translateX(-50%);
   background: rgba(18, 22, 32, .96);
   border: 1px solid rgba(255,255,255,.12);
   border-radius: 10px; padding: 4px;
-  display: flex; flex-direction: column; gap: 2px;
-  box-shadow: 0 10px 24px rgba(0,0,0,.4);
+  display: grid; grid-template-columns: 1fr 1fr; gap: 3px;
+  width: calc(100% - 12px); max-height: calc(100% - 12px); overflow-y: auto;
+  box-shadow: 0 6px 18px rgba(0,0,0,.45);
 }
+.menu button { font-size: 11px; padding: 5px 4px; }
+.menu .sizes { grid-column: 1 / -1; display: grid; grid-template-columns: auto 1fr 1fr 1fr 1fr; gap: 3px; align-items: center; }
+.menu .sizes span { font-size: 10px; opacity: .7; padding-left: 2px; }
 .menu[hidden] { display: none; }
 .menu button {
   background: transparent; border: 0; color: #e6ecfa;
