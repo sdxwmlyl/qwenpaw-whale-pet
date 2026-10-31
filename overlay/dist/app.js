@@ -294,10 +294,17 @@ bubble.addEventListener("click", () => {
 
 window.addEventListener("contextmenu", (e) => { e.preventDefault(); menu.hidden = false; });
 
+function inv(cmd, args) {
+  const T = window.__TAURI__;
+  const f = (T && T.core && T.core.invoke) || (T && T.tauri && T.tauri.invoke);
+  return f ? f(cmd, args) : null;
+}
+
 function applySize(px) {
   localStorage.setItem("petSize", String(px));
+  if (inv("pet_set_size", { size: px })) return;
   const w = window.__TAURI__ && window.__TAURI__.window;
-  if (w) w.getCurrentWindow().setSize(new w.LogicalSize(px, px + 64));
+  try { if (w) w.getCurrentWindow().setSize(new w.LogicalSize(px, px + 64)); } catch (e) {}
 }
 
 menu.addEventListener("click", async (e) => {
@@ -325,8 +332,10 @@ menu.addEventListener("click", async (e) => {
     hud.hidden = !hud.hidden;
     localStorage.setItem("hudHidden", hud.hidden ? "1" : "0");
   } else if (act === "hide") {
+    if (inv("pet_hide")) { say("我先躲起来啦（托盘图标点一下回来）", 2600); return; }
     if (w) w.getCurrentWindow().hide();
   } else if (act === "quit") {
+    if (inv("pet_quit")) return;
     if (w) w.getCurrentWindow().close();
   }
 });

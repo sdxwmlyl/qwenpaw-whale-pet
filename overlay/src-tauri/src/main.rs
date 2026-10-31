@@ -72,6 +72,23 @@ fn top_left(app: &tauri::AppHandle) {
 }
 
 #[tauri::command]
+fn pet_set_size(window: tauri::WebviewWindow, size: f64) -> Result<(), String> {
+    window
+        .set_size(tauri::LogicalSize::new(size, size + 64.0))
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn pet_hide(window: tauri::WebviewWindow) -> Result<(), String> {
+    window.hide().map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn pet_quit(app: tauri::AppHandle) {
+    app.exit(0);
+}
+
+#[tauri::command]
 fn drag_start(window: tauri::WebviewWindow) -> Result<(), String> {
     window.start_dragging().map_err(|e| e.to_string())
 }
@@ -149,7 +166,7 @@ fn main() {
             bridge::start(dir);
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![drag_start])
+        .invoke_handler(tauri::generate_handler![drag_start, pet_set_size, pet_hide, pet_quit])
         .on_window_event(|window, event| {
             if let WindowEvent::Moved(pos) = event {
                 save_pos(window.app_handle(), pos.x, pos.y);

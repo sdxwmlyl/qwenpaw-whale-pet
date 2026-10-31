@@ -110,6 +110,16 @@ struct Cache {
     err: bool,
 }
 
+fn sane_stats(v: &mut Value) {
+    let low = |k: &str| v[k].as_f64().unwrap_or(0.0) < 1.0;
+    if low("battery") || low("mood") || low("satiety") {
+        v["battery"] = json!(72.0);
+        v["mood"] = json!(80.0);
+        v["satiety"] = json!(65.0);
+    }
+}
+
+
 pub fn start(state_dir: PathBuf) {
     let state = Arc::new(Mutex::new(json!({
         "ver": "v2.2-rust",
@@ -130,6 +140,8 @@ pub fn start(state_dir: PathBuf) {
     if let Ok(txt) = std::fs::read_to_string(&stats_path) {
         if let Ok(v) = serde_json::from_str::<Value>(&txt) {
             if let Ok(mut s) = state.lock() {
+                let mut v = v;
+                sane_stats(&mut v);
                 s["stats"] = v;
             }
         }
@@ -307,16 +319,16 @@ fn poller(state: Arc<Mutex<Value>>) {
         if now.duration_since(last_tick) >= Duration::from_secs(60) {
             last_tick = now;
             if let Ok(mut s) = state.lock() {
-                let mut sat = s["stats"]["satiety"].as_f64().unwrap_or(0.0) - 1.0;
-                sat = sat.max(0.0);
+                let mut sat = s["stats"]["satiety"].as_f64().unwrap_or(65.0) - 1.0;
+                sat = sat.max(15.0);                      // 地板：不要掉到 0（掉到 0 会一直蔫着）
                 s["stats"]["satiety"] = json!(sat);
                 if s["status"].as_str() == Some("working") {
-                    let b = (s["stats"]["battery"].as_f64().unwrap_or(0.0) - 1.0).max(0.0);
-                    let m = (s["stats"]["mood"].as_f64().unwrap_or(0.0) - 1.0).max(0.0);
+                    let b = (s["stats"]["battery"].as_f64().unwrap_or(72.0) - 1.0).max(20.0);
+                    let m = (s["stats"]["mood"].as_f64().unwrap_or(80.0) - 1.0).max(20.0);
                     s["stats"]["battery"] = json!(b);
                     s["stats"]["mood"] = json!(m);
                 } else {
-                    let b = (s["stats"]["battery"].as_f64().unwrap_or(0.0) - 0.3).max(0.0);
+                    let b = (s["stats"]["battery"].as_f64().unwrap_or(72.0) + 0.5).min(100.0); // 空闲回电
                     s["stats"]["battery"] = json!(b);
                 }
                 s["food_low"] = json!(sat < 20.0);
