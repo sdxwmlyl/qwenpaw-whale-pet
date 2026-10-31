@@ -109,11 +109,13 @@ fn main() {
     tauri::Builder::default()
         .setup(|app| {
             let show = MenuItem::with_id(app, "show", "显示 / 隐藏", true, None::<&str>)?;
+            let feed = MenuItem::with_id(app, "feed", "🍚 投喂", true, None::<&str>)?;
+            let pat = MenuItem::with_id(app, "headpat", "🖐 摸头", true, None::<&str>)?;
             let thru = MenuItem::with_id(app, "thru", "👻 穿透模式（切换）", true, None::<&str>)?;
             let dodge = MenuItem::with_id(app, "dodge", "↖ 移到左上角（躲开审批窗）", true, None::<&str>)?;
             let reset = MenuItem::with_id(app, "reset", "↘ 复位到右下角", true, None::<&str>)?;
             let quit = MenuItem::with_id(app, "quit", "退出", true, None::<&str>)?;
-            let menu = Menu::with_items(app, &[&show, &thru, &dodge, &reset, &quit])?;
+            let menu = Menu::with_items(app, &[&show, &feed, &pat, &thru, &dodge, &reset, &quit])?;
 
             if let Some(icon) = app.default_window_icon().cloned() {
                 let _ = TrayIconBuilder::new()
@@ -123,6 +125,14 @@ fn main() {
                     .show_menu_on_left_click(false)
                     .on_menu_event(|app, event| match event.id.as_ref() {
                         "show" => toggle_window(app),
+                        "feed" => {
+                            let _ = ureq::post("http://127.0.0.1:7799/action")
+                                .send_json(serde_json::json!({"act": "feed"}));
+                        }
+                        "headpat" => {
+                            let _ = ureq::post("http://127.0.0.1:7799/action")
+                                .send_json(serde_json::json!({"act": "headpat"}));
+                        }
                         "dodge" => top_left(app),
                         "reset" => bottom_right(app),
                         "thru" => {

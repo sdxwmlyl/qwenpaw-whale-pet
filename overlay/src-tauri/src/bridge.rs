@@ -61,6 +61,8 @@ fn extract(messages: &[Value]) -> (Option<String>, Option<Value>, bool) {
     let mut tool: Option<String> = None;
     let mut usage: Option<Value> = None;
     let mut err = false;
+    let mut seen: std::collections::HashSet<(u64, u64, u64)> = std::collections::HashSet::new();
+    let mut out_sum: u64 = 0;
     for m in &messages[start..] {
         let ty = m.get("type").and_then(|t| t.as_str()).unwrap_or("");
         if ty == "plugin_call" {
@@ -95,8 +97,23 @@ fn extract(messages: &[Value]) -> (Option<String>, Option<Value>, bool) {
             .and_then(|x| x.get("qwenpaw_turn_usage"))
             .and_then(|x| x.get("usage"))
         {
+            // 后端把每个请求的 usage 复制到该请求的所有消息上；
+            // 按 (prompt, last_prompt, completion) 去重后再求和，才是“本轮总输出”
+            let key = (
+                u.get("prompt_tokens").and_then(|v| v.as_u64()).unwrap_or(0),
+                u.get("last_prompt_tokens").and_then(|v| v.as_u64()).unwrap_or(0),
+                u.get("completion_tokens").and_then(|v| v.as_u64()).unwrap_or(0),
+            );
+            if seen.insert(key) {
+                out_sum += key.2;
+            }
             usage = Some(u.clone());
         }
+    }
+    if let Some(u) = usage.clone() {
+        let mut v = u.clone();
+        v["completion_tokens"] = json!(out_sum);
+        usage = Some(v);
     }
     (tool, usage, err)
 }
