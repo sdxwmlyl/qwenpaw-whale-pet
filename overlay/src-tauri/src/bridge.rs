@@ -379,8 +379,14 @@ fn poller(state: Arc<Mutex<Value>>) {
                 s["approval_pending"] = json!(if pend > 0 { pend } else if demo_on { 1 } else { 0 });
             }
 
+            let multi_on = state
+                .lock()
+                .ok()
+                .and_then(|g| g.get("multi_demo_until").and_then(|v| v.as_f64()))
+                .map(|t| now_ts() < t)
+                .unwrap_or(false);
             if let Ok(mut st) = state.lock() {
-                st["active"] = json!(running.len());
+                st["active"] = json!(if multi_on { 3 } else { running.len() });
                 st["agent"] = json!(if sel.is_empty() { "all".to_string() } else { sel.clone() });
             }
 
@@ -600,6 +606,7 @@ fn serve(state: Arc<Mutex<Value>>, stats_path: PathBuf, dir: PathBuf) {
                     }
                     "test_sound" | "beep" => s["beep"] = json!(now_ts()),
                     "demo_permission" => s["perm_demo_until"] = json!(now_ts() + 8.0),
+                    "demo_multi" => s["multi_demo_until"] = json!(now_ts() + 6.0),
                     "demo_turn" => {
                         s["turn_demo_until"] = json!(now_ts() + 6.0);
                         s["finished_at"] = json!(now_ts());

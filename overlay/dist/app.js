@@ -70,6 +70,7 @@ let soundOn = localStorage.getItem("soundOn") !== "0";
 let prevPermission = false;
 let prevGuard = 0;
 let prevActive = 0;
+let prevAgent = null;
 let prevBeep = 0;
 
 function play(kind) {
@@ -180,6 +181,11 @@ async function poll() {
       play("alert");
       say("⚠️ 有条命令被护栏拦了", 4200);
     }
+    const ag = d.agent || "all";
+    if (prevAgent !== null && ag !== prevAgent && ag !== "") {
+      say(ag === "all" ? "🤖 切回：全部会话" : "🤖 正在监听 " + ag, 2600);
+    }
+    prevAgent = ag;
     const act = Number(d.active || 0);
     if (act > 1 && act !== prevActive) {
       say("🟢 现在有 " + act + " 个会话在同时跑", 3200);
