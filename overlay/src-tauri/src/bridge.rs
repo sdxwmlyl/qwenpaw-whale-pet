@@ -183,7 +183,16 @@ fn sane_stats(v: &mut Value) {
 }
 
 
+fn blog(dir: &std::path::Path, msg: &str) {
+    use std::io::Write;
+    let p = std::path::PathBuf::from(r"D:\QwenPawWorkSpace\default\_bridge_trace.log");
+    if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open(p) {
+        let _ = writeln!(f, "[{}] {}", now_ts() as i64, msg);
+    }
+}
+
 pub fn start(state_dir: PathBuf) {
+    blog(&state_dir, "start() entered");
     let state = Arc::new(Mutex::new(json!({
         "ver": "v2.2-rust",
         "status": "idle",
@@ -210,14 +219,23 @@ pub fn start(state_dir: PathBuf) {
         }
     }
 
+    blog(&state_dir, "state ready, spawning threads");
     {
         let st = Arc::clone(&state);
-        thread::spawn(move || poller(st));
+        let d = state_dir.clone();
+        thread::spawn(move || {
+            blog(&d, "poller thread up");
+            poller(st)
+        });
     }
     {
         let st = Arc::clone(&state);
         let sp = stats_path.clone();
-        thread::spawn(move || serve(st, sp));
+        let d = state_dir.clone();
+        thread::spawn(move || {
+            blog(&d, "serve thread up");
+            serve(st, sp, d)
+        });
     }
 }
 
@@ -436,11 +454,29 @@ fn poller(state: Arc<Mutex<Value>>) {
     }
 }
 
-fn serve(state: Arc<Mutex<Value>>, stats_path: PathBuf) {
-    let server = match tiny_http::Server::http(("127.0.0.1", PORT)) {
-        Ok(s) => s,
-        Err(e) => {
-            eprintln!("bridge: cannot bind {}: {}", PORT, e);
+fn serve(state: Arc<Mutex<Value>>, stats_path: PathBuf, dir: PathBuf) {
+    blog(&dir, "serve() start");
+    // 端口可能被上一个实例短暂占用（TIME_WAIT），重试 30 秒
+    let mut server = None;
+    for i in 0..30 {
+        match tiny_http::Server::http(("127.0.0.1", PORT)) {
+            Ok(s) => {
+                server = Some(s);
+                break;
+            }
+            Err(e) => {
+                eprintln!("bridge: bind {} failed (try {}): {}", PORT, i + 1, e);
+                std::thread::sleep(std::time::Duration::from_secs(1));
+            }
+        }
+    }
+    let server = match server {
+        Some(s) => {
+            blog(&dir, &format!("bound port {}", PORT));
+            s
+        }
+        None => {
+            blog(&dir, "give up binding");
             return;
         }
     };

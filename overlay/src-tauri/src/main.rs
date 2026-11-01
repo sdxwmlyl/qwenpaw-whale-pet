@@ -155,9 +155,22 @@ fn ensure_single_instance() {
     }
 }
 
+fn trace(msg: &str) {
+    use std::io::Write;
+    if let Ok(mut f) = std::fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(r"D:\QwenPawWorkSpace\default\_main_trace.log")
+    {
+        let _ = writeln!(f, "{}", msg);
+    }
+}
+
 fn main() {
+    trace("main entered");
     #[cfg(target_os = "windows")]
     ensure_single_instance();
+    trace("single-instance ok");
 
     tauri::Builder::default()
         .setup(|app| {
@@ -231,12 +244,15 @@ fn main() {
                 }
                 let _ = w.show();
             }
+            trace("setup reached bridge start");
             let dir = app
                 .path()
                 .app_data_dir()
                 .unwrap_or_else(|_| std::path::PathBuf::from("."));
             let _ = fs::create_dir_all(&dir);
+            trace("calling bridge::start");
             bridge::start(dir);
+            trace("bridge::start returned");
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![drag_start, pet_set_size, pet_hide, pet_quit])
