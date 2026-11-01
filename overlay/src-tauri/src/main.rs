@@ -69,14 +69,19 @@ fn save_pos(app: &tauri::AppHandle, x: i32, y: i32) {
     }
 }
 
+fn place_logical(w: &tauri::WebviewWindow, lx: f64, ly: f64) {
+    let sf = w.scale_factor().unwrap_or(1.0);
+    let _ = w.set_position(PhysicalPosition::new((lx * sf) as i32, (ly * sf) as i32));
+}
+
 fn bottom_right(app: &tauri::AppHandle) {
     if let Some(w) = app.get_webview_window("main") {
         if let Ok(Some(mon)) = w.current_monitor() {
             let ms = mon.size();
             if let Ok(ws) = w.outer_size() {
-                let x = ms.width as i32 - ws.width as i32 - 60;
-                let y = ms.height as i32 - ws.height as i32 - 90;
-                let _ = w.set_position(PhysicalPosition::new(x, y));
+                let x = ms.width as f64 - ws.width as f64 - 60.0;
+                let y = ms.height as f64 - ws.height as f64 - 90.0;
+                place_logical(&w, x, y);
             }
         }
     }
@@ -85,8 +90,8 @@ fn bottom_right(app: &tauri::AppHandle) {
 fn top_left(app: &tauri::AppHandle) {
     if let Some(w) = app.get_webview_window("main") {
         if let Ok(Some(mon)) = w.current_monitor() {
-            let mp = mon.position();
-            let _ = w.set_position(PhysicalPosition::new(mp.x + 40, mp.y + 60));
+            let _ = mon.position();
+            place_logical(&w, 40.0, 60.0);
         }
     }
 }
