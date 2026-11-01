@@ -130,7 +130,35 @@ fn toggle_window(app: &tauri::AppHandle) {
     }
 }
 
+#[cfg(target_os = "windows")]
+fn ensure_single_instance() {
+    use std::ffi::OsStr;
+    use std::os::windows::ffi::OsStrExt;
+    let name: Vec<u16> = OsStr::new("Global\\QwenPawWhalePetSingleton")
+        .encode_wide()
+        .chain(std::iter::once(0))
+        .collect();
+    extern "system" {
+        fn CreateMutexW(
+            lp_mutex_attributes: *const std::ffi::c_void,
+            b_initial_owner: i32,
+            lp_name: *const u16,
+        ) -> *mut std::ffi::c_void;
+        fn GetLastError() -> u32;
+    }
+    unsafe {
+        let handle = CreateMutexW(std::ptr::null(), 0, name.as_ptr());
+        if handle.is_null() || GetLastError() == 183 {
+            // 已经有实例在跑，直接退出，避免出现两个鲸鱼娘（其中一个还绑不上 7799）
+            std::process::exit(0);
+        }
+    }
+}
+
 fn main() {
+    #[cfg(target_os = "windows")]
+    ensure_single_instance();
+
     tauri::Builder::default()
         .setup(|app| {
             let show = MenuItem::with_id(app, "show", "显示 / 隐藏", true, None::<&str>)?;
