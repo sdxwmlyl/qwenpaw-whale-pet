@@ -21,6 +21,26 @@ fn pos_file(app: &tauri::AppHandle) -> Option<std::path::PathBuf> {
     Some(dir.join("window_pos.txt"))
 }
 
+/// 把坐标钳制到当前显示器可见范围内（留 8px 边距，避免整块跑到屏外）
+fn on_screen_xy(w: &tauri::WebviewWindow, x: i32, y: i32) -> Option<(i32, i32)> {
+    let mon = w.current_monitor().ok().flatten()?;
+    let ms = mon.size();
+    let mp = mon.position();
+    let ws = w.outer_size().ok()?;
+    let (mw, mh) = (ms.width as i32, ms.height as i32);
+    let (mwid, mhei) = (ws.width as i32, ws.height as i32);
+    let inside = x >= mp.x
+        && y >= mp.y
+        && x + mwid <= mp.x + mw
+        && y + mhei <= mp.y + mh;
+    if inside {
+        Some((x, y))
+    } else {
+        None
+    }
+}
+
+
 fn read_pos(app: &tauri::AppHandle) -> Option<(i32, i32)> {
     let p = pos_file(app)?;
     let s = fs::read_to_string(p).ok()?;
@@ -161,9 +181,19 @@ fn main() {
 
             if let Some(w) = app.get_webview_window("main") {
                 match read_pos(app.handle()) {
-                    Some((x, y)) => {
-                        let _ = w.set_position(PhysicalPosition::new(x, y));
-                    }
+                    Some((x, y)) => match on_screen_xy(&w, x, y) {
+                        Some((cx, cy)) => {
+                            let _ = w.set_position(PhysicalPosition::new(cx, cy));
+                        }
+                        None => {
+                            // 保存的坐标在屏外（换显示器/分辨率/误拖）→ 回右下角并覆盖保存
+                            bottom_right(app.handle());
+                            let mon_w = w.current_monitor().ok().flatten().map(|m| m.size().width as i32).unwrap_or(1920);
+                            let mon_h = w.current_monitor().ok().flatten().map(|m| m.size().height as i32).unwrap_or(1080);
+                            let ws = w.outer_size().unwrap_or(tauri::PhysicalSize::new(240, 280));
+                            save_pos(app.handle(), mon_w - ws.width as i32 - 60, mon_h - ws.height as i32 - 90);
+                        }
+                    },
                     None => bottom_right(app.handle()),
                 }
                 let _ = w.show();
