@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{width:1080px;height:1920px;overflow:hidden;background:#F7F8FA}
+  body{font-family:"Microsoft YaHei","PingFang SC",sans-serif;color:#0E1116;-webkit-font-smoothing:antialiased}
+  #stage{position:relative;width:1080px;height:1920px;overflow:hidden;background:#F7F8FA}
+  .sc{position:absolute;inset:0;display:none}
+  .label{position:absolute;left:88px;font-size:30px;letter-spacing:4px;color:#9AA3B2;font-weight:700}
+  .h1{font-size:132px;font-weight:900;line-height:1.06;letter-spacing:-3px}
+  .h2{font-size:96px;font-weight:900;line-height:1.1;letter-spacing:-2px}
+  .h3{font-size:64px;font-weight:800;line-height:1.25}
+  .sub{font-size:40px;line-height:1.6;color:#5B6472}
+  .cap{position:absolute;left:120px;right:120px;bottom:120px;font-size:38px;line-height:1.5;
+       color:#3E4653;text-align:center;letter-spacing:.5px}
+  .rule{position:absolute;height:2px;background:#111;opacity:.9}
+  .mono{font-family:Consolas,monospace}
+  .accent{color:#2F6BFF}
+  .shot{position:absolute;border-radius:22px;overflow:hidden;background:#fff;
+        box-shadow:0 24px 60px rgba(14,17,22,.14);border:1px solid #E6E9EF}
+  .shot img{display:block;width:100%}
+  .num{font-family:Consolas,monospace;font-size:30px;color:#9AA3B2;letter-spacing:3px}
+  #flash{position:absolute;inset:0;background:#fff;opacity:0}
+</style>
+</head>
+<body>
+<div id="stage">
+  <!-- 0 · HOOK (black) -->
+  <section class="sc" id="s0">
+    <div style="position:absolute;inset:0;background:#0B0D10"></div>
+    <div id="s0l" style="position:absolute;left:88px;top:520px;font-size:34px;letter-spacing:6px;color:#7C8798;font-weight:700">QWENPAW · 桌面外挂</div>
+    <div id="s0h" style="position:absolute;left:82px;top:620px;width:920px;font-size:150px;font-weight:900;line-height:1.05;letter-spacing:-3px;color:#fff">她不是<br>壁纸。</div>
+    <div id="s0s" style="position:absolute;left:88px;top:1010px;width:880px;font-size:40px;line-height:1.6;color:#8A94A6">你干活的时候，<br>她真的在看着你。</div>
+    <div id="s0r" style="position:absolute;left:88px;top:1240px;width:400px;height:2px;background:#2F6BFF"></div>
+    <div id="s0c" style="position:absolute;left:88px;top:1300px;font-size:36px;color:#5C6678">你写代码，她换姿势。</div>
+  </section>
+
+  <!-- 1 · REVEAL -->
+  <section class="sc" id="s1">
+    <div class="label" id="s1l" style="top:150px">01 · 它来了</div>
+    <div class="h1" id="s1h" style="position:absolute;left:82px;top:250px;width:920px">QwenPaw<br>终于有<br>鲸鱼娘了</div>
+    <img id="s1i" src="assets/poses/idle.webp" style="position:absolute;right:20px;bottom:230px;width:600px;filter:drop-shadow(0 24px 50px rgba(0,0,0,.18))">
+    <div class="cap" id="s1c"></div>
+  </section>
+
+  <!-- 2 · VALUE 1 -->
+  <section class="sc" id="s2">
+    <div class="label" id="s2l" style="top:150px">02 · 看得懂</div>
+    <div class="h2" id="s2h" style="position:absolute;left:82px;top:240px;width:920px">你在干什么<br>她就换姿势</div>
+    <div class="shot" id="s2s" style="left:88px;top:640px;width:904px;height:620px">
+      <img src="assets/screenshots/02-pose-and-stats.png" style="position:absolute;width:1320px;left:-380px;top:-260px">
+    </div>
+    <img src="assets/screenshots/01-desktop.png" style="position:absolute;left:700px;top:700px;width:300px;border-radius:14px;border:6px solid #fff;box-shadow:0 18px 44px rgba(14,17,22,.22);transform:rotate(4deg)">
+    <div class="sub" id="s2b" style="position:absolute;left:88px;top:1320px;width:900px">
+      写代码、查资料、跑测试，<br>她都在旁边陪着。
+    </div>
+    <div class="cap" id="s2c"></div>
+  </section>
+
+  <!-- 3 · VALUE 2 -->
+  <section class="sc" id="s3">
+    <div class="label" id="s3l" style="top:150px">03 · 算得清</div>
+    <div class="h2" id="s3h" style="position:absolute;left:82px;top:240px;width:920px">每轮花了多少<br>她当场报</div>
+    <div class="shot" id="s3s" style="left:88px;top:640px;width:904px;height:600px">
+      <img src="assets/screenshots/03-token-notice.png" style="position:absolute;width:1080px;left:-70px;top:-30px">
+    </div>
+    <div class="sub" id="s3b" style="position:absolute;left:88px;top:1300px;width:900px">
+      这一轮花多少、跑多快、缓存命中多少，<br>她当场报给你，一眼看到。
+    </div>
+    <div class="cap" id="s3c"></div>
+  </section>
+
+  <!-- 4 · VALUE 3 -->
+  <section class="sc" id="s4">
+    <div class="label" id="s4l" style="top:150px">04 · 叫得应</div>
+    <div class="h2" id="s4h" style="position:absolute;left:82px;top:240px;width:920px">跑完、需要你<br>她会叫一声</div>
+    <div class="shot" id="s4s" style="left:262px;top:650px;width:556px;height:556px;border-radius:32px;background:#0F1218">
+      <img src="assets/screenshots/04-permission-alert.png" style="width:190%;margin-left:-45%;margin-top:-8%">
+    </div>
+    <div class="sub" id="s4b" style="position:absolute;left:88px;top:1290px;width:900px">
+      跑完响一声；需要你点一下的时候，<br>她提醒你，气泡一直在。
+    </div>
+    <div class="cap" id="s4c"></div>
+  </section>
+
+  <!-- 5 · SCENES -->
+  <section class="sc" id="s5">
+    <div class="label" id="s5l" style="top:150px">05 · 什么时候最有用</div>
+    <div class="h2" id="s5h" style="position:absolute;left:82px;top:230px">她陪着<br>你这一轮</div>
+    <div id="s5g" style="position:absolute;left:70px;top:560px;width:940px;height:980px"></div>
+    <div class="cap" id="s5c"></div>
+  </section>
+
+  <!-- 6 · END -->
+  <section class="sc" id="s6">
+    <div class="label" id="s6l" style="top:170px">06 · 开源</div>
+    <div class="h1" id="s6h" style="position:absolute;left:82px;top:270px;width:930px">QwenPaw<br>×<br>鲸鱼娘</div>
+    <div class="rule" id="s6r" style="left:88px;top:1060px;width:904px;background:#111"></div>
+    <div class="mono" id="s6m" style="position:absolute;left:88px;top:1120px;font-size:38px;color:#111">github.com/sdxwmlyl<br>/qwenpaw-whale-pet</div>
+    <div class="sub" id="s6b" style="position:absolute;left:88px;top:1300px;width:900px;font-size:34px">
+      开源 · MIT · 仅 Windows 已验证<br>Release 下载，或解压后双击 start.bat
+    </div>
+    <div style="position:absolute;left:88px;bottom:330px;font-family:Consolas,monospace;font-size:30px;color:#8A94A6;letter-spacing:1px">82 个状态 · 47 条触发规则 · 9 种工作姿势</div>
+    <img src="assets/poses/celebrate.webp" id="s6i" style="position:absolute;right:60px;bottom:150px;width:300px;opacity:.95">
+    <div class="cap" id="s6c"></div>
+  </section>
+
+  <div id="flash"></div>
+</div>
+
+<script>
+const clamp=(v,a=0,b=1)=>Math.max(a,Math.min(b,v));
+const ease=p=>1-Math.pow(1-clamp(p),3);
+const easeIn=p=>Math.pow(clamp(p),2.2);
+
+// scenario grid
+(function(){
+  const items=[['idle.webp','写代码','轮到它审阅 / 调试'],['curious.webp','查资料','随时能问她'],
+               ['celebrate.webp','跑长任务','确认音 + 出星'],['meme-omg.webp','摸鱼','双击还能调戏']];
+  const g=document.getElementById('s5g');
+  items.forEach((it,i)=>{
+    const d=document.createElement('div');
+    d.style.cssText='position:absolute;width:450px;height:460px;left:'+(i%2?490:0)+'px;top:'+(Math.floor(i/2)*510)+'px;'+
+      'background:#fff;border:1px solid #E6E9EF;border-radius:22px;box-shadow:0 18px 44px rgba(14,17,22,.10)';
+    d.innerHTML='<img src="assets/poses/'+it[0]+'" style="position:absolute;left:50%;transform:translateX(-50%);top:26px;height:250px">'+
+      '<div style="position:absolute;left:34px;bottom:92px;font-size:44px;font-weight:900">'+it[1]+'</div>'+
+      '<div style="position:absolute;left:34px;bottom:42px;font-size:28px;color:#6B7280">'+it[2]+'</div>';
+    g.appendChild(d);
+  });
+})();
+
+function setCap(id, txt){ const e=document.getElementById(id); if(e) e.textContent = txt||''; }
+
+window.__render = function(t, TL){
+  const S = TL.scenes, total = TL.total;
+  S.forEach(s=>{ document.getElementById(s.id).style.display = (t>=s.t0-1e-3 && t<s.t1) ? 'block':'none'; });
+
+  // S0 hook
+  if (t>=S[0].t0 && t<S[0].t1){
+    const p = clamp((t-S[0].t0)/(S[0].t1-S[0].t0));
+    const el=(id)=>document.getElementById(id);
+    const a = ease(clamp(p*3.2));
+    el('s0h').style.opacity=a; el('s0h').style.transform='scale('+(1.14-0.14*a)+')';
+    el('s0l').style.opacity=ease(clamp(p*2.2-0.1));
+    el('s0s').style.opacity=ease(clamp(p*2.2-0.35));
+    el('s0r').style.width=(400*ease(clamp(p*2.0-0.45)))+'px';
+    el('s0c').style.opacity=ease(clamp(p*2.4-0.6));
+    el('s0c').style.transform='translateX('+(36*(1-ease(clamp(p*2.4-0.6))))+'px)';
+    setCap('s1c',''); // captions live on their own scene
+  }
+
+  // S1 reveal
+  if (t>=S[1].t0 && t<S[1].t1){
+    const p=clamp((t-S[1].t0)/(S[1].t1-S[1].t0));
+    const h=document.getElementById('s1h'); const a=ease(clamp(p*2.6));
+    h.style.opacity=a; h.style.transform='translateY('+(50*(1-a))+'px)';
+    const im=document.getElementById('s1i'); const b=ease(clamp(p*2.0-0.25));
+    im.style.opacity=b; im.style.transform='translateY('+(70*(1-b))+'px) scale('+(0.94+0.06*b)+') rotate('+(-2+2*b)+'deg)';
+    document.getElementById('s1l').style.opacity=a;
+  }
+  // S2 .. S4: screenshot rises, text after
+  [['s2','s2s','s2b'],['s3','s3s','s3b'],['s4','s4s','s4b']].forEach(([sid,shot,body],k)=>{
+    const s=S[2+k];
+    if (t>=s.t0 && t<s.t1){
+      const p=clamp((t-s.t0)/(s.t1-s.t0));
+      const a=ease(clamp(p*3.4));
+      const el=document.getElementById(shot);
+      el.style.opacity=a; el.style.transform='translateY('+(60*(1-a))+'px) scale('+(0.97+0.03*a)+')';
+      const b=ease(clamp(p*3.0-0.55));
+      document.getElementById(body).style.opacity=b;
+      document.getElementById(body).style.transform='translateY('+(30*(1-b))+'px';
+      document.getElementById(sid+'l').style.opacity=a;
+    }
+  });
+  // S5 grid
+  if (t>=S[5].t0 && t<S[5].t1){
+    const p=clamp((t-S[5].t0)/(S[5].t1-S[5].t0));
+    [...document.getElementById('s5g').children].forEach((d,i)=>{
+      const q=ease(clamp(p*9-0.12*i-0.05));
+      d.style.opacity=q; d.style.transform='translateY('+(44*(1-q))+'px)';
+    });
+    document.getElementById('s5l').style.opacity=ease(clamp(p*4));
+  }
+  // S6 end
+  if (t>=S[6].t0){
+    const p=clamp((t-S[6].t0)/Math.max(0.6,(S[6].t1-S[6].t0)));
+    const a=ease(clamp(p*2.4));
+    document.getElementById('s6h').style.opacity=a;
+    document.getElementById('s6h').style.transform='translateY('+(40*(1-a))+'px)';
+    const b=ease(clamp(p*2.2-0.3));
+    document.getElementById('s6m').style.opacity=b;
+    document.getElementById('s6b').style.opacity=b;
+    document.getElementById('s6r').style.opacity=b;
+    document.getElementById('s6i').style.opacity=b*0.95;
+    document.getElementById('s6l').style.opacity=a;
+  }
+
+  // captions (解说字幕)
+  S.forEach(s=>{ setCap(s.capId, s.cap); });
+  // flash at hook -> reveal cut
+  const fl=document.getElementById('flash');
+  const cut=S[0].t1;
+  fl.style.opacity = (t>cut-0.12 && t<cut+0.18) ? (0.55*(1-Math.abs(t-cut)/0.18)) : 0;
+};
+window.__ready = true;
+</script>
+</body>
+</html>

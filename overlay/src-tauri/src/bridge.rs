@@ -286,6 +286,22 @@ fn poller(state: Arc<Mutex<Value>>) {
 
     loop {
         let now = Instant::now();
+        {
+            let demo_until = state
+                .lock()
+                .ok()
+                .and_then(|g| g.get("turn_demo_until").and_then(|v| v.as_f64()))
+                .unwrap_or(0.0);
+            if now_ts() < demo_until {
+                if let Ok(mut st) = state.lock() {
+                    st["status"] = json!("idle");
+                    st["pose"] = json!("success");
+                    st["tool"] = Value::Null;
+                }
+                std::thread::sleep(Duration::from_secs(2));
+                continue;
+            }
+        }
         let sel = get_agent();
         let list_path = if sel.is_empty() {
             "/api/chats".to_string()
@@ -584,6 +600,17 @@ fn serve(state: Arc<Mutex<Value>>, stats_path: PathBuf, dir: PathBuf) {
                     }
                     "test_sound" | "beep" => s["beep"] = json!(now_ts()),
                     "demo_permission" => s["perm_demo_until"] = json!(now_ts() + 8.0),
+                    "demo_turn" => {
+                        s["turn_demo_until"] = json!(now_ts() + 6.0);
+                        s["finished_at"] = json!(now_ts());
+                        s["turn"] = json!({"seconds": 86.0, "output": 16538, "tps": 192.3, "cache_hit": 99.96});
+                        s["last_turn"] = s["turn"].clone();
+                    }
+                    "test_turn" => {
+                        s["finished_at"] = json!(now_ts());
+                        s["turn"] = json!({"seconds": 86.0, "output": 16538, "tps": 192.3, "cache_hit": 99.96});
+                        s["last_turn"] = s["turn"].clone();
+                    }
                     "use_agent" => {
                         set_agent(&agent_sel_tmp);
                         s["agent"] = json!(agent_sel_tmp.clone());
