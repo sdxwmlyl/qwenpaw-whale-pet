@@ -3,7 +3,7 @@
 把 [dsh-whale-musume](https://github.com/Sutera-Diffusus/dsh-whale-musume)（DeepSeek Harness 的鲸鱼娘桌宠，MIT）
 移植到 **QwenPaw** 的独立桌面外挂。
 
-> 新功能演示（20 秒）：[`promo/鲸鱼娘_v0.2_功能演示.mp4`](promo/鲸鱼娘_v0.2_功能演示.mp4)
+> 新功能演示（20 秒）：[`promo/鲸鱼娘_v1.2_功能演示.mp4`](promo/鲸鱼娘_v1.2_功能演示.mp4)
 
 ![desktop](docs/screenshots/01-desktop.png)
 
