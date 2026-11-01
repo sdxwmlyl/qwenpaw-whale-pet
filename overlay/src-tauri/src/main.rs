@@ -174,6 +174,7 @@ fn main() {
 
     tauri::Builder::default()
         .setup(|app| {
+            trace("setup entered");
             let show = MenuItem::with_id(app, "show", "显示 / 隐藏", true, None::<&str>)?;
             let feed = MenuItem::with_id(app, "feed", "🍚 投喂", true, None::<&str>)?;
             let pat = MenuItem::with_id(app, "headpat", "🖐 摸头", true, None::<&str>)?;
@@ -181,8 +182,11 @@ fn main() {
             let dodge = MenuItem::with_id(app, "dodge", "↖ 移到左上角（躲开审批窗）", true, None::<&str>)?;
             let reset = MenuItem::with_id(app, "reset", "↘ 复位到右下角", true, None::<&str>)?;
             let quit = MenuItem::with_id(app, "quit", "退出", true, None::<&str>)?;
+            trace("menu items ok");
             let menu = Menu::with_items(app, &[&show, &feed, &pat, &thru, &dodge, &reset, &quit])?;
+            trace("menu built");
 
+            trace("before tray block");
             if let Some(icon) = app.default_window_icon().cloned() {
                 let _ = TrayIconBuilder::new()
                     .icon(icon)
@@ -204,7 +208,8 @@ fn main() {
                         "thru" => {
                             let on = !CLICK_THROUGH.load(Ordering::Relaxed);
                             CLICK_THROUGH.store(on, Ordering::Relaxed);
-                            if let Some(w) = app.get_webview_window("main") {
+                            trace("before window block");
+            if let Some(w) = app.get_webview_window("main") {
                                 let _ = w.set_ignore_cursor_events(on);
                             }
                             let _ = app.emit("clickthrough", on);
@@ -223,8 +228,10 @@ fn main() {
                         }
                     })
                     .build(app)?;
+                trace("tray built");
             }
 
+            trace("before window block");
             if let Some(w) = app.get_webview_window("main") {
                 match read_pos(app.handle()) {
                     Some((x, y)) => match on_screen_xy(&w, x, y) {

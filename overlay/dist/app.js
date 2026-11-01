@@ -1,4 +1,4 @@
-/* 鲸鱼娘 · Tauri 外挂 v3
+﻿/* 鲸鱼娘 · Tauri 外挂 v3
    - 工具姿势 / 三项数值 / token+tok/s 结算（可常驻，点击关闭）
    - 大小四档显式选择
    - 额外表情：低电、饥饿、连续摸头、连续完成、夜间
@@ -128,6 +128,7 @@ function setPose(name, holdMs) {
   if (!SPRITES[name]) name = "idle";
   pose = name;
   sprite.src = SPRITES[name];
+  try { document.title = "鲸鱼娘·" + name; } catch (e) {}
   document.body.classList.toggle("working", ["review", "idea", "debug", "deploy", "meeting", "ram", "deadline", "boss", "slack", "thinking", "tool"].includes(name));
   document.body.classList.toggle("sleeping", name === "sleep");
   if (holdMs) {
@@ -162,7 +163,13 @@ function setStats(s) {
 
 async function poll() {
   try {
-    const d = await (await fetch("http://127.0.0.1:7799/state", { cache: "no-store" })).json();
+    let d;
+    try {
+      d = await (await fetch("http://127.0.0.1:7799/state", { cache: "no-store" })).json();
+    } catch (fe) {
+      return;
+      return;
+    }
     setStats(d.stats);
     if (d.error && !busy && pose !== "angry") {
       setPose("failure", 2600);

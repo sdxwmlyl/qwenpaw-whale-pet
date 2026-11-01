@@ -454,6 +454,17 @@ fn poller(state: Arc<Mutex<Value>>) {
     }
 }
 
+
+fn cors_headers() -> Vec<tiny_http::Header> {
+    vec![
+        tiny_http::Header::from_bytes(&b"Content-Type"[..], &b"application/json"[..]).unwrap(),
+        tiny_http::Header::from_bytes(&b"Access-Control-Allow-Origin"[..], &b"*"[..]).unwrap(),
+        tiny_http::Header::from_bytes(&b"Access-Control-Allow-Methods"[..], &b"GET, POST, OPTIONS"[..]).unwrap(),
+        tiny_http::Header::from_bytes(&b"Access-Control-Allow-Headers"[..], &b"Content-Type"[..]).unwrap(),
+        tiny_http::Header::from_bytes(&b"Cache-Control"[..], &b"no-store"[..]).unwrap(),
+    ]
+}
+
 fn serve(state: Arc<Mutex<Value>>, stats_path: PathBuf, dir: PathBuf) {
     blog(&dir, "serve() start");
     // 端口可能被上一个实例短暂占用（TIME_WAIT），重试 30 秒
@@ -483,6 +494,14 @@ fn serve(state: Arc<Mutex<Value>>, stats_path: PathBuf, dir: PathBuf) {
     for mut req in server.incoming_requests() {
         let url = req.url().to_string();
         let method = req.method().clone();
+        if method == tiny_http::Method::Options {
+            let mut resp = tiny_http::Response::from_string("").with_status_code(204);
+            for h in cors_headers() {
+                resp = resp.with_header(h);
+            }
+            let _ = req.respond(resp);
+            continue;
+        }
         if url.starts_with("/state") || url.starts_with("/health") {
             let body = {
                 let s = state.lock().unwrap();
@@ -492,11 +511,11 @@ fn serve(state: Arc<Mutex<Value>>, stats_path: PathBuf, dir: PathBuf) {
                     s.clone()
                 }
             };
-            let _ = req.respond(
-                tiny_http::Response::from_string(body.to_string()).with_header(
-                    tiny_http::Header::from_bytes(&b"Content-Type"[..], &b"application/json"[..]).unwrap(),
-                ),
-            );
+            let mut resp = tiny_http::Response::from_string(body.to_string()).with_status_code(200);
+            for h in cors_headers() {
+                resp = resp.with_header(h);
+            }
+            let _ = req.respond(resp);
         } else if url.starts_with("/action") && method == tiny_http::Method::Post {
             let mut buf = String::new();
             let _ = req.as_reader().take(8192).read_to_string(&mut buf);
@@ -530,11 +549,11 @@ fn serve(state: Arc<Mutex<Value>>, stats_path: PathBuf, dir: PathBuf) {
                     let _ = std::fs::write(&stats_path, txt);
                 }
                 let body = json!({"ok": true, "stats": stats});
-                let _ = req.respond(
-                    tiny_http::Response::from_string(body.to_string()).with_header(
-                        tiny_http::Header::from_bytes(&b"Content-Type"[..], &b"application/json"[..]).unwrap(),
-                    ),
-                );
+                let mut resp = tiny_http::Response::from_string(body.to_string()).with_status_code(200);
+                for h in cors_headers() {
+                    resp = resp.with_header(h);
+                }
+                let _ = req.respond(resp);
             }
         } else {
             let _ = req.respond(tiny_http::Response::from_string("not found").with_status_code(404));
