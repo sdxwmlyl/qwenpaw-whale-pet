@@ -1,0 +1,14 @@
+{
+  "name": "whale-pet-promo",
+  "version": "1.2.0",
+  "private": true,
+  "scripts": {
+    "render": "remotion render src/index.tsx Promo out/promo.mp4"
+  },
+  "dependencies": {
+    "@remotion/cli": "4.0.300",
+    "react": "19.0.0",
+    "react-dom": "19.0.0",
+    "remotion": "4.0.300"
+  }
+}
