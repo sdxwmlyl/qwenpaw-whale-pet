@@ -7,7 +7,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
 use tauri::{
-    menu::{Menu, MenuItem},
+    menu::{Menu, MenuItem, Submenu},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
     Emitter, Manager, PhysicalPosition, WindowEvent,
 };
@@ -183,7 +183,39 @@ fn main() {
             let reset = MenuItem::with_id(app, "reset", "↘ 复位到右下角", true, None::<&str>)?;
             let quit = MenuItem::with_id(app, "quit", "退出", true, None::<&str>)?;
             trace("menu items ok");
-            let menu = Menu::with_items(app, &[&show, &feed, &pat, &thru, &dodge, &reset, &quit])?;
+            // 智能体列表：从 QwenPaw 拉取启用中的 agent，做成子菜单
+            let mut agent_items: Vec<MenuItem<tauri::Wry>> = Vec::new();
+            let all_item = MenuItem::with_id(app, "agent:", "全部会话（default）", true, None::<&str>)?;
+            agent_items.push(all_item);
+            let agents = ureq::get("http://127.0.0.1:64445/api/agents")
+                .timeout(std::time::Duration::from_secs(5))
+                .call()
+                .ok()
+                .and_then(|r| r.into_json::<serde_json::Value>().ok());
+            if let Some(list) = agents.as_ref().and_then(|v| v.get("agents")).and_then(|a| a.as_array()) {
+                trace(&format!("agents fetched: {}", list.len()));
+                for a in list {
+                    let enabled = a.get("enabled").and_then(|e| e.as_bool()).unwrap_or(false);
+                    if !enabled {
+                        continue;
+                    }
+                    let id = a.get("id").and_then(|v| v.as_str()).unwrap_or("");
+                    let name = a.get("name").and_then(|v| v.as_str()).unwrap_or(id);
+                    if id.is_empty() || id == "default" {
+                        continue;
+                    }
+                    let label = format!("{} ({})", name, id);
+                    if let Ok(it) = MenuItem::with_id(app, format!("agent:{}", id), label, true, None::<&str>) {
+                        agent_items.push(it);
+                    }
+                }
+            } else {
+                trace("agents fetch failed");
+            }
+            let refs: Vec<&dyn tauri::menu::IsMenuItem<tauri::Wry>> = agent_items.iter().map(|i| i as &dyn tauri::menu::IsMenuItem<tauri::Wry>).collect();
+            let agent_menu = Submenu::with_items(app, "🤖 智能体（切换监听对象）", true, &refs)?;
+
+            let menu = Menu::with_items(app, &[&show, &feed, &pat, &agent_menu, &thru, &dodge, &reset, &quit])?;
             trace("menu built");
 
             trace("before tray block");
@@ -193,7 +225,14 @@ fn main() {
                     .tooltip("鲸鱼娘 · QwenPaw")
                     .menu(&menu)
                     .show_menu_on_left_click(false)
-                    .on_menu_event(|app, event| match event.id.as_ref() {
+                    .on_menu_event(|app, event| {
+                        let eid = event.id.as_ref().to_string();
+                        if let Some(agent) = eid.strip_prefix("agent:") {
+                            bridge::set_agent(agent);
+                            trace(&format!("agent switched to [{}]", agent));
+                            return;
+                        }
+                        match eid.as_str() {
                         "show" => toggle_window(app),
                         "feed" => {
                             let _ = ureq::post("http://127.0.0.1:7799/action")
@@ -216,6 +255,7 @@ fn main() {
                         }
                         "quit" => app.exit(0),
                         _ => {}
+                        }
                     })
                     .on_tray_icon_event(|tray, event| {
                         if let TrayIconEvent::Click {

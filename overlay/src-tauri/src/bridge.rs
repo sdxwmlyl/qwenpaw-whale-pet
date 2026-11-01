@@ -183,6 +183,22 @@ fn sane_stats(v: &mut Value) {
 }
 
 
+static AGENT_SEL: std::sync::OnceLock<std::sync::Mutex<String>> = std::sync::OnceLock::new();
+
+fn agent_slot() -> &'static std::sync::Mutex<String> {
+    AGENT_SEL.get_or_init(|| std::sync::Mutex::new(String::new()))
+}
+
+pub fn set_agent(id: &str) {
+    if let Ok(mut g) = agent_slot().lock() {
+        *g = id.to_string();
+    }
+}
+
+pub fn get_agent() -> String {
+    agent_slot().lock().map(|g| g.clone()).unwrap_or_default()
+}
+
 fn blog(dir: &std::path::Path, msg: &str) {
     use std::io::Write;
     let p = std::path::PathBuf::from(r"D:\QwenPawWorkSpace\default\_bridge_trace.log");
@@ -259,7 +275,13 @@ fn poller(state: Arc<Mutex<Value>>) {
 
     loop {
         let now = Instant::now();
-        if let Some(chats) = http_get("/api/chats", 4000).and_then(|v| v.as_array().cloned()) {
+        let sel = get_agent();
+        let list_path = if sel.is_empty() {
+            "/api/chats".to_string()
+        } else {
+            format!("/api/agents/{}/chats", sel)
+        };
+        if let Some(chats) = http_get(&list_path, 4000).and_then(|v| v.as_array().cloned()) {
             let pend = http_get("/api/approval/list", 3000)
                 .and_then(|v| {
                     v.get("count")
@@ -329,6 +351,7 @@ fn poller(state: Arc<Mutex<Value>>) {
 
             if let Ok(mut st) = state.lock() {
                 st["active"] = json!(running.len());
+                st["agent"] = json!(if sel.is_empty() { "all".to_string() } else { sel.clone() });
             }
 
             if celebrate {
@@ -519,9 +542,14 @@ fn serve(state: Arc<Mutex<Value>>, stats_path: PathBuf, dir: PathBuf) {
         } else if url.starts_with("/action") && method == tiny_http::Method::Post {
             let mut buf = String::new();
             let _ = req.as_reader().take(8192).read_to_string(&mut buf);
-            let act = serde_json::from_str::<Value>(&buf)
-                .ok()
+            let payload = serde_json::from_str::<Value>(&buf).ok();
+            let act = payload
+                .as_ref()
                 .and_then(|v| v.get("act").and_then(|a| a.as_str()).map(|s| s.to_string()))
+                .unwrap_or_default();
+            let agent_sel_tmp = payload
+                .as_ref()
+                .and_then(|v| v.get("id").and_then(|a| a.as_str()).map(|s| s.to_string()))
                 .unwrap_or_default();
             {
                 let mut s = state.lock().unwrap();
@@ -542,6 +570,10 @@ fn serve(state: Arc<Mutex<Value>>, stats_path: PathBuf, dir: PathBuf) {
                     }
                     "test_sound" | "beep" => s["beep"] = json!(now_ts()),
                     "demo_permission" => s["perm_demo_until"] = json!(now_ts() + 8.0),
+                    "use_agent" => {
+                        set_agent(&agent_sel_tmp);
+                        s["agent"] = json!(agent_sel_tmp.clone());
+                    }
                     _ => {}
                 }
                 let stats = s["stats"].clone();
