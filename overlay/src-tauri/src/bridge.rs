@@ -1,4 +1,4 @@
-//! 内置状态桥：替代原来的 Python bridge.exe（PyInstaller 会被杀软误报）
+﻿//! 内置状态桥：替代原来的 Python bridge.exe（PyInstaller 会被杀软误报）
 //! 对外契约与旧版一致：GET /state、POST /action
 
 use serde_json::{json, Value};
@@ -29,6 +29,20 @@ fn http_get(path: &str, timeout_ms: u64) -> Option<Value> {
         .ok()?;
     resp.into_json::<Value>().ok()
 }
+
+fn has_guard(messages: &[Value]) -> bool {
+    const KEYS: [&str; 6] = [
+        "Blocked:", "Refusing to execute", "拒绝执行", "护栏", "needs your approval", "需要审批",
+    ];
+    for m in messages.iter().rev().take(12) {
+        let blob = m.get("content").map(|c| c.to_string()).unwrap_or_default();
+        if KEYS.iter().any(|k| blob.contains(k)) {
+            return true;
+        }
+    }
+    false
+}
+
 
 fn classify(status: &str) -> &'static str {
     match status.to_ascii_lowercase().as_str() {
@@ -247,6 +261,10 @@ fn poller(state: Arc<Mutex<Value>>) {
                 s["approval_pending"] = json!(if pend > 0 { pend } else if demo_on { 1 } else { 0 });
             }
 
+            if let Ok(mut st) = state.lock() {
+                st["active"] = json!(running.len());
+            }
+
             if celebrate {
                 if let Ok(mut s) = state.lock() {
                     let dur = now.duration_since(turn_started).as_secs_f64().max(0.5);
@@ -284,6 +302,14 @@ fn poller(state: Arc<Mutex<Value>>) {
                             cache.tool = tool;
                             cache.usage = usage;
                             cache.err = err;
+                            if has_guard(msgs) {
+                                if let Ok(mut st) = state.lock() {
+                                    let last = st["guard_ts"].as_f64().unwrap_or(0.0);
+                                    if now_ts() - last > 15.0 {
+                                        st["guard_ts"] = json!(now_ts());
+                                    }
+                                }
+                            }
                         }
                     }
                     let spent = t0.elapsed();

@@ -68,6 +68,8 @@ const AUDIO = {
 };
 let soundOn = localStorage.getItem("soundOn") !== "0";
 let prevPermission = false;
+let prevGuard = 0;
+let prevActive = 0;
 let prevBeep = 0;
 
 function play(kind) {
@@ -166,6 +168,16 @@ async function poll() {
       setPose("failure", 2600);
       say("出错了…我看看日志", 2600);
     }
+    if (d.guard_ts && d.guard_ts !== prevGuard) {
+      prevGuard = d.guard_ts;
+      play("alert");
+      say("⚠️ 有条命令被护栏拦了", 4200);
+    }
+    const act = Number(d.active || 0);
+    if (act > 1 && act !== prevActive) {
+      say("🟢 现在有 " + act + " 个会话在同时跑", 3200);
+    }
+    prevActive = act;
     if (d.permission && !prevPermission) {
       play("alert");
       say("⚠️ 有权限要你批一下", 5000);
