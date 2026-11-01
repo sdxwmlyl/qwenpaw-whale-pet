@@ -62,12 +62,23 @@ fn chrono_like_age(ts: &str) -> Option<f64> {
 
 
 fn has_guard(messages: &[Value]) -> bool {
-    const KEYS: [&str; 6] = [
-        "Blocked:", "Refusing to execute", "拒绝执行", "护栏", "needs your approval", "需要审批",
-    ];
-    for m in messages.iter().rev().take(12) {
-        let blob = m.get("content").map(|c| c.to_string()).unwrap_or_default();
-        if KEYS.iter().any(|k| blob.contains(k)) {
+    // 只看工具输出（plugin_call_output），且必须是以拦截图开头的真实拒绝——
+    // 不能扫助手正文，否则我们自己讨论“护栏/审批”会被误判成拦截。
+    for m in messages.iter().rev().take(8) {
+        if m.get("type").and_then(|t| t.as_str()) != Some("plugin_call_output") {
+            continue;
+        }
+        let blob = m
+            .get("content")
+            .and_then(|c| c.as_array())
+            .and_then(|a| a.first())
+            .and_then(|b| b.get("data"))
+            .and_then(|d| d.get("output"))
+            .and_then(|o| o.as_str())
+            .map(|s| s.to_string())
+            .unwrap_or_default();
+        let t = blob.trim_start();
+        if t.starts_with("Blocked:") || t.starts_with("Refusing to execute") {
             return true;
         }
     }
@@ -320,7 +331,8 @@ fn poller(state: Arc<Mutex<Value>>) {
                             .map(|t| now.duration_since(*t).as_secs() < 1800)
                             .unwrap_or(false);
                     if !fresh {
-                        next_prev.insert(id.clone(), "idle".to_string());
+                        // 只是“看起来卡住”的降级，不能当成一轮工作结束
+                        next_prev.insert(id.clone(), "stale".to_string());
                         continue;
                     }
                     if prev_st.as_deref() != Some("running") {
@@ -329,7 +341,9 @@ fn poller(state: Arc<Mutex<Value>>) {
                     let s = *started.get(&id).unwrap_or(&now);
                     running.push((id.clone(), s));
                 }
-                if prev_st.as_deref() == Some("running") && st != "running" {
+                // 只有 running → idle 才算这一轮真的结束；
+                // running → waiting（等待审批）和 running → stale（判定为卡死）都不算
+                if prev_st.as_deref() == Some("running") && st == "idle" && prev_st.as_deref() != Some("stale") {
                     celebrate = true;
                 }
                 next_prev.insert(id, st.to_string());
