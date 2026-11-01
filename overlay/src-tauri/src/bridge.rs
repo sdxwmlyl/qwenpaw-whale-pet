@@ -30,6 +30,37 @@ fn http_get(path: &str, timeout_ms: u64) -> Option<Value> {
     resp.into_json::<Value>().ok()
 }
 
+/// 把 "2026-11-01T12:00:00.123456Z" 转成“距今多少秒”，解析失败返回 None
+fn chrono_like_age(ts: &str) -> Option<f64> {
+    let t = ts.trim_end_matches('Z');
+    let (date, time) = t.split_once('T')?;
+    let mut d = date.split('-');
+    let (y, m, dd) = (
+        d.next()?.parse::<i64>().ok()?,
+        d.next()?.parse::<i64>().ok()?,
+        d.next()?.parse::<i64>().ok()?,
+    );
+    let clock = time.split('.').next()?;
+    let mut c = clock.split(':');
+    let (hh, mm, ss) = (
+        c.next()?.parse::<i64>().ok()?,
+        c.next()?.parse::<i64>().ok()?,
+        c.next()?.parse::<i64>().ok()?,
+    );
+    // days since epoch (civil algorithm)
+    let y2 = if m <= 2 { y - 1 } else { y };
+    let era = if y2 >= 0 { y2 } else { y2 - 399 } / 400;
+    let yoe = y2 - era * 400;
+    let mp = (m + 9) % 12;
+    let doy = (153 * mp + 2) / 5 + dd - 1;
+    let doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;
+    let days = era * 146097 + doe - 719468;
+    let secs = days * 86400 + hh * 3600 + mm * 60 + ss;
+    let now = now_ts() as i64;
+    Some((now - secs) as f64)
+}
+
+
 fn has_guard(messages: &[Value]) -> bool {
     const KEYS: [&str; 6] = [
         "Blocked:", "Refusing to execute", "拒绝执行", "护栏", "needs your approval", "需要审批",
@@ -133,6 +164,7 @@ fn extract(messages: &[Value]) -> (Option<String>, Option<Value>, bool) {
 }
 
 struct Cache {
+    n: usize,
     cid: String,
     at: Instant,
     interval: Duration,
@@ -191,8 +223,10 @@ pub fn start(state_dir: PathBuf) {
 
 fn poller(state: Arc<Mutex<Value>>) {
     let mut prev: HashMap<String, String> = HashMap::new();
+    let mut growth: HashMap<String, Instant> = HashMap::new();
     let mut started: HashMap<String, Instant> = HashMap::new();
     let mut cache = Cache {
+        n: 0,
         cid: String::new(),
         at: Instant::now() - Duration::from_secs(60),
         interval: Duration::from_secs(8),
@@ -235,6 +269,20 @@ fn poller(state: Arc<Mutex<Value>>) {
                     waiting_any = true;
                 }
                 if st == "running" {
+                    let fresh = c
+                        .get("updated_at")
+                        .and_then(|v| v.as_str())
+                        .and_then(|t| chrono_like_age(t))
+                        .map(|age| age < 1800.0)
+                        .unwrap_or(true)
+                        || growth
+                            .get(&id)
+                            .map(|t| now.duration_since(*t).as_secs() < 1800)
+                            .unwrap_or(false);
+                    if !fresh {
+                        next_prev.insert(id.clone(), "idle".to_string());
+                        continue;
+                    }
                     if prev_st.as_deref() != Some("running") {
                         started.insert(id.clone(), now);
                     }
@@ -298,6 +346,10 @@ fn poller(state: Arc<Mutex<Value>>) {
                     let t0 = Instant::now();
                     if let Some(detail) = http_get(&format!("/api/chats/{}", cid), 15000) {
                         if let Some(msgs) = detail.get("messages").and_then(|m| m.as_array()) {
+                            if msgs.len() != cache.n {
+                                cache.n = msgs.len();
+                                growth.insert(cid.clone(), now);
+                            }
                             let (tool, usage, err) = extract(msgs);
                             cache.tool = tool;
                             cache.usage = usage;
