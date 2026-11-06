@@ -135,15 +135,30 @@ fn extract(messages: &[Value]) -> (Option<String>, Option<Value>, bool) {
             }
         }
         if ty == "plugin_call_output" {
+            // 只认“工具真的失败了”：status=error/failed，或输出以错误前缀开头。
+            // 不能因为正文里出现 error 字样就报错（日志/文档里常见）。
             let st = m
                 .get("status")
                 .and_then(|s| s.as_str())
                 .unwrap_or("")
                 .to_ascii_lowercase();
-            let blob = m.get("content").map(|c| c.to_string()).unwrap_or_default();
-            if ["error", "failed", "failure"].contains(&st.as_str())
-                || blob.to_lowercase().contains("traceback")
-            {
+            let mut is_err = ["error", "failed", "failure"].contains(&st.as_str());
+            if !is_err {
+                let out = m
+                    .get("content")
+                    .and_then(|c| c.as_array())
+                    .and_then(|a| a.first())
+                    .and_then(|b| b.get("data"))
+                    .and_then(|d| d.get("output"))
+                    .and_then(|o| o.as_str())
+                    .unwrap_or("");
+                let head = out.trim_start();
+                is_err = head.starts_with("Error")
+                    || head.starts_with("Traceback")
+                    || head.starts_with("Exception")
+                    || head.starts_with("Blocked:");
+            }
+            if is_err {
                 err = true;
             }
         }
@@ -396,6 +411,7 @@ fn poller(state: Arc<Mutex<Value>>) {
                     let out = s["tokens"]["output"].as_f64().unwrap_or(0.0);
                     s["status"] = json!("idle");
                     s["pose"] = json!("success");
+                    s["error"] = json!(false);
                     s["finished_at"] = json!(now_ts());
                     s["tool"] = Value::Null;
                     s["chat"] = Value::Null;
